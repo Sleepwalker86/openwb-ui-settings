@@ -11,12 +11,14 @@
         },
         { value: 'duo', text: 'openWB series1/2 Duo' },
         { value: 'socket', text: 'openWB series1/2 Buchse' },
+        { value: 'pro_plus', text: 'openWB Pro+' },
+        { value: 'se', text: 'openWB SE 11kW' },
       ]"
       :model-value="chargePoint.configuration.mode"
       @update:model-value="updateMode($event)"
     />
     <openwb-base-number-input
-      v-if="chargePoint.configuration.mode == 'duo'"
+      v-if="chargePoint.configuration.mode == 'duo' || chargePoint.configuration.mode == 'se'"
       title="Ladepunkt-Nummer"
       required
       :min="1"
@@ -25,8 +27,8 @@
       @update:model-value="updateConfiguration($event - 1, 'configuration.duo_num')"
     >
       <template #help>
-        Bei einfachen Ladepunkten ist hier immer eine "1" einzutragen. Lediglich bei einer openWB Duo kann mit "2" der
-        zweite enthaltene Ladepunkt angesprochen werden.
+        Bei einer openWB Duo oder openWB SE Duo können mit "1" oder "2" die beiden enthaltenen Ladepunkte angesprochen
+        werden. Bei einer openWB SE mit einem Ladepunkt ist hier eine 1 einzutragen.
       </template>
     </openwb-base-number-input>
   </div>
@@ -40,8 +42,8 @@ export default {
   mixins: [ChargePointConfigMixin],
   methods: {
     updateMode(event) {
-      // set "duo_num" to "1" for modes only supporting one charge point
-      if (event == "series" || event == "socket") {
+      // reset "duo_num" for modes only supporting one charge point
+      if (["series", "socket", "pro_plus"].includes(event)) {
         this.updateConfiguration(0, "configuration.duo_num");
       }
       this.updateConfiguration(event, "configuration.mode");

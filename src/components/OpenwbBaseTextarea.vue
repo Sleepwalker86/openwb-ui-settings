@@ -18,18 +18,17 @@
             <div class="input-group-text">
               <font-awesome-icon
                 v-if="subtype == 'text'"
-                fixed-width
                 :icon="['fas', 'keyboard']"
               />
               <font-awesome-icon
                 v-if="subtype == 'json'"
-                fixed-width
                 :icon="['fas', 'code']"
               />
             </div>
           </div>
           <textarea
             v-if="subtype === 'json'"
+            :id="`${uid}-textarea`"
             ref="jsonInput"
             v-model.lazy="value"
             class="form-control"
@@ -37,6 +36,7 @@
           />
           <textarea
             v-else
+            :id="`${uid}-textarea`"
             v-model="value"
             class="form-control"
             v-bind="$attrs"
@@ -57,6 +57,7 @@
 
 <script>
 import OpenwbBaseSettingElement from "./OpenwbBaseSettingElement.vue";
+import BaseSettingComponents from "./mixins/BaseSettingComponents.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faKeyboard as fasKeyboard, faCode as fasCode } from "@fortawesome/free-solid-svg-icons";
@@ -70,6 +71,7 @@ export default {
     OpenwbBaseSettingElement,
     FontAwesomeIcon,
   },
+  mixins: [BaseSettingComponents],
   inheritAttrs: false,
   props: {
     title: { type: String, required: false, default: "" },
@@ -93,7 +95,7 @@ export default {
       get() {
         if (this.subtype == "json") {
           if (this.inputInvalid) {
-            console.debug("returning invalid String");
+            console.debug("returning invalid JSON as String");
             return this.tempValue;
           } else {
             return JSON.stringify(this.tempValue, undefined, 2);

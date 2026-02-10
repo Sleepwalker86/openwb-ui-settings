@@ -12,19 +12,20 @@
       <slot name="help" />
     </template>
     <template #default>
-      <div class="w-100">
+      <div
+        v-if="!readonly"
+        class="w-100"
+      >
         <div class="input-group">
           <div class="input-group-prepend">
             <div class="input-group-text">
               <slot name="input-prefix">
-                <font-awesome-icon
-                  fixed-width
-                  :icon="['fas', 'tag']"
-                />
+                <font-awesome-icon :icon="['fas', 'tag']" />
               </slot>
             </div>
           </div>
           <input
+            :id="`${uid}-tag-input`"
             ref="tagInput"
             v-model="newTag"
             type="text"
@@ -39,10 +40,7 @@
               @click="addTag"
             >
               <slot name="input-add">
-                <font-awesome-icon
-                  fixed-width
-                  :icon="['fas', 'plus']"
-                />
+                <font-awesome-icon :icon="['fas', 'plus']" />
               </slot>
             </div>
           </div>
@@ -66,6 +64,7 @@
           </slot>
           {{ tag }}
           <font-awesome-icon
+            v-if="!readonly"
             class="clickable remove-element"
             :icon="['fas', 'times-circle']"
             @click="removeTag(index)"
@@ -78,6 +77,7 @@
 
 <script>
 import OpenwbBaseSettingElement from "./OpenwbBaseSettingElement.vue";
+import BaseSettingComponents from "./mixins/BaseSettingComponents.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
@@ -96,6 +96,7 @@ export default {
     FontAwesomeIcon,
     OpenwbBaseSettingElement,
   },
+  mixins: [BaseSettingComponents],
   inheritAttrs: false,
   props: {
     title: { type: String, required: true, default: "#TITLE#" },
@@ -111,12 +112,17 @@ export default {
         return "Keine Elemente zugeordnet.";
       },
     },
+    readonly: {
+      type: Boolean,
+      default: () => {
+        return false;
+      },
+    },
   },
   emits: ["update:modelValue"],
   data() {
     return {
       newTag: "",
-      showHelp: false,
     };
   },
   computed: {
@@ -130,7 +136,7 @@ export default {
     },
     newTagValid: {
       get() {
-        return this.newTag.length > 0 && !this.value.includes(this.newTag);
+        return this.newTag.length > 0 && !this.value.includes(this.newTag) && this.$refs.tagInput?.checkValidity();
       },
     },
   },
@@ -159,7 +165,7 @@ export default {
 
 input.invalid,
 input:invalid {
-  border: 2px solid var(--danger);
+  background-color: pink;
 }
 
 .tagList {

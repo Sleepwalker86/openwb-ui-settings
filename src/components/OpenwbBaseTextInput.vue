@@ -18,53 +18,45 @@
             <div class="input-group-text">
               <font-awesome-icon
                 v-if="subtype == 'text'"
-                fixed-width
                 :icon="['fas', 'keyboard']"
               />
               <font-awesome-icon
                 v-if="subtype == 'email'"
-                fixed-width
                 :icon="['fas', 'envelope']"
               />
               <font-awesome-icon
                 v-if="subtype == 'host'"
-                fixed-width
                 :icon="['fas', 'network-wired']"
               />
               <font-awesome-icon
                 v-if="subtype == 'url'"
-                fixed-width
                 :icon="['fas', 'globe']"
               />
               <font-awesome-icon
                 v-if="subtype == 'user'"
-                fixed-width
                 :icon="['fas', 'user']"
               />
               <font-awesome-icon
                 v-if="subtype == 'json'"
-                fixed-width
                 :icon="['fas', 'code']"
               />
               <font-awesome-icon
                 v-if="subtype == 'password'"
-                fixed-width
                 :icon="showPassword ? ['fas', 'unlock'] : ['fas', 'lock']"
               />
               <font-awesome-icon
                 v-if="subtype == 'time'"
-                fixed-width
                 :icon="['fas', 'clock']"
               />
               <font-awesome-icon
                 v-if="subtype == 'date' || subtype == 'month' || subtype == 'year'"
-                fixed-width
                 :icon="['fas', 'calendar-day']"
               />
             </div>
           </div>
           <input
             v-if="['text', 'user'].includes(subtype)"
+            :id="`${uid}-text-input`"
             ref="textInput"
             v-model="value"
             type="text"
@@ -75,6 +67,7 @@
           />
           <input
             v-if="subtype == 'json'"
+            :id="`${uid}-json-input`"
             ref="jsonInput"
             v-model="value"
             type="text"
@@ -84,6 +77,7 @@
           />
           <input
             v-if="subtype == 'password'"
+            :id="`${uid}-password-input`"
             ref="passwordInput"
             v-model="value"
             :type="showPassword ? 'text' : 'password'"
@@ -93,14 +87,17 @@
           />
           <input
             v-if="subtype == 'host'"
+            :id="`${uid}-host-input`"
             ref="hostInput"
             v-model="value"
             type="text"
             class="form-control"
             v-bind="$attrs"
+            :pattern="hostPattern"
           />
           <input
             v-if="['email', 'url'].includes(subtype)"
+            :id="`${uid}-url-input`"
             v-model="value"
             refs="urlInput"
             :type="subtype"
@@ -109,6 +106,7 @@
           />
           <input
             v-if="subtype == 'time'"
+            :id="`${uid}-time-input`"
             ref="timeInput"
             v-model="value"
             type="time"
@@ -117,6 +115,7 @@
           />
           <input
             v-if="subtype == 'date'"
+            :id="`${uid}-date-input`"
             ref="dateInput"
             v-model="value"
             type="date"
@@ -125,6 +124,7 @@
           />
           <input
             v-if="subtype == 'month'"
+            :id="`${uid}-month-input`"
             ref="monthInput"
             v-model="value"
             type="month"
@@ -133,6 +133,7 @@
           />
           <input
             v-if="subtype == 'year'"
+            :id="`${uid}-year-input`"
             ref="yearInput"
             v-model="value"
             type="number"
@@ -153,10 +154,7 @@
             @click="togglePassword"
           >
             <div class="input-group-text">
-              <font-awesome-icon
-                fixed-width
-                :icon="showPassword ? ['far', 'eye'] : ['far', 'eye-slash']"
-              />
+              <font-awesome-icon :icon="showPassword ? ['far', 'eye'] : ['far', 'eye-slash']" />
             </div>
           </div>
           <div
@@ -173,6 +171,14 @@
           >
             <div class="input-group-text">+</div>
           </div>
+          <div
+            v-if="$slots.append"
+            class="input-group-append"
+          >
+            <div class="input-group-text p-0">
+              <slot name="append" />
+            </div>
+          </div>
         </div>
       </div>
     </template>
@@ -181,6 +187,7 @@
 
 <script>
 import OpenwbBaseSettingElement from "./OpenwbBaseSettingElement.vue";
+import BaseSettingComponents from "./mixins/BaseSettingComponents.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
@@ -219,6 +226,7 @@ export default {
     FontAwesomeIcon,
     OpenwbBaseSettingElement,
   },
+  mixins: [BaseSettingComponents],
   inheritAttrs: false,
   props: {
     title: { type: String, required: false, default: "" },
@@ -307,6 +315,13 @@ export default {
       }
       // default to textInput
       return this.$refs.textInput;
+    },
+    hostPattern() {
+      const ipPattern = "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$";
+      const hostOnlyPattern = "^(?=.*[a-zA-Z].*$)([a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])$";
+      const domainPattern =
+        "^((?=[^.]*[a-zA-Z][^.]*\\.)([a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9]\\.))+((?=[^.]*[a-zA-Z].*$)([a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9]))$";
+      return `(${ipPattern})|(${hostOnlyPattern})|(${domainPattern})`;
     },
   },
   methods: {

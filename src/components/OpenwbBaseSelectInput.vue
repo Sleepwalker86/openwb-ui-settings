@@ -1,6 +1,9 @@
 <template>
   <openwb-base-setting-element>
-    <template #title>
+    <template
+      v-if="$slots.title || title"
+      #title
+    >
       <slot name="title">
         {{ title }}
       </slot>
@@ -23,13 +26,14 @@
             </div>
           </div>
           <select
+            :id="`${uid}-select`"
             v-model="value"
             class="col form-control"
             v-bind="$attrs"
           >
             <option
               v-if="notSelected !== undefined"
-              :value="undefined"
+              :value="emptyValue"
               disabled
             >
               -- {{ notSelected }} --
@@ -67,10 +71,7 @@
               @click="addClicked()"
             >
               <slot name="inputAdd">
-                <font-awesome-icon
-                  fixed-width
-                  :icon="['fas', 'plus']"
-                />
+                <font-awesome-icon :icon="['fas', 'plus']" />
               </slot>
             </div>
           </div>
@@ -82,6 +83,7 @@
 
 <script>
 import OpenwbBaseSettingElement from "./OpenwbBaseSettingElement.vue";
+import BaseSettingComponents from "./mixins/BaseSettingComponents.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faPlus as fasPlus } from "@fortawesome/free-solid-svg-icons";
@@ -95,14 +97,16 @@ export default {
     FontAwesomeIcon,
     OpenwbBaseSettingElement,
   },
+  mixins: [BaseSettingComponents],
   inheritAttrs: false,
   props: {
-    title: { type: String, required: false, default: "" },
+    title: { type: String, required: false, default: undefined },
     modelValue: {
       type: [String, Number, Array, null],
       required: false,
       default: undefined,
     },
+    emptyValue: { type: [String, Number, Array], required: false, default: undefined },
     groups: { type: Array, required: false, default: undefined },
     options: { type: Array, required: false, default: undefined },
     notSelected: { type: String, default: undefined },

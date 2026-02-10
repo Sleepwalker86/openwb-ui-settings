@@ -1,88 +1,107 @@
 <template>
-  <openwb-base-card
+  <status-card
     subtype="warning"
-    :collapsible="true"
-    :collapsed="true"
+    :component-id="battery.id"
+    :state="$store.state.mqtt[baseTopic + '/get/fault_state']"
+    :state-message="$store.state.mqtt[baseTopic + '/get/fault_str']"
   >
-    <template #header>
-      <font-awesome-icon
-        fixed-width
-        :icon="['fas', 'car-battery']"
-      />
-      {{ battery.name }} (ID: {{ battery.id }})
+    <template #header-left>
+      <font-awesome-icon :icon="['fas', 'car-battery']" />
+      {{ battery.name }}
     </template>
-    <openwb-base-alert :subtype="statusLevel[$store.state.mqtt['openWB/bat/' + battery.id + '/get/fault_state']]">
-      <font-awesome-icon
-        v-if="$store.state.mqtt['openWB/bat/' + battery.id + '/get/fault_state'] == 1"
-        fixed-width
-        :icon="['fas', 'exclamation-triangle']"
-      />
-      <font-awesome-icon
-        v-else-if="$store.state.mqtt['openWB/bat/' + battery.id + '/get/fault_state'] == 2"
-        fixed-width
-        :icon="['fas', 'times-circle']"
-      />
-      <font-awesome-icon
-        v-else
-        fixed-width
-        :icon="['fas', 'check-circle']"
-      />
-      Modulmeldung:<br />
-      <span style="white-space: pre-wrap">{{ $store.state.mqtt["openWB/bat/" + battery.id + "/get/fault_str"] }}</span>
-    </openwb-base-alert>
-    <openwb-base-heading>Aktuelle Werte</openwb-base-heading>
-    <openwb-base-text-input
-      title="Leistung"
-      readonly
-      class="text-right text-monospace"
-      step="0.001"
-      unit="kW"
-      :model-value="formatNumberTopic('openWB/bat/' + battery.id + '/get/power', 3, 3, 0.001)"
-    />
-    <openwb-base-number-input
-      title="Ladestand"
-      readonly
-      class="text-right text-monospace"
-      unit="%"
-      :model-value="$store.state.mqtt['openWB/bat/' + battery.id + '/get/soc']"
-    />
-    <openwb-base-heading>Zählerstände</openwb-base-heading>
-    <openwb-base-text-input
-      title="Ladung"
-      readonly
-      class="text-right text-monospace"
-      step="0.001"
-      unit="kWh"
-      :model-value="formatNumberTopic('openWB/bat/' + battery.id + '/get/imported', 3, 3, 0.001)"
-    />
-    <openwb-base-text-input
-      title="Entladung"
-      readonly
-      class="text-right text-monospace"
-      step="0.001"
-      unit="kWh"
-      :model-value="formatNumberTopic('openWB/bat/' + battery.id + '/get/exported', 3, 3, 0.001)"
-    />
-  </openwb-base-card>
+    <template #header-right>
+      {{ formatNumberTopic(baseTopic + "/get/power", 1, 1, 0.001) }}&nbsp;kW /
+      {{ $store.state.mqtt[baseTopic + "/get/soc"] }}&nbsp;%
+    </template>
+    <!-- Aktuelle Werte -->
+    <openwb-base-card
+      title="Aktuelle Werte"
+      subtype="white"
+      body-bg="white"
+      class="py-1 mb-2"
+    >
+      <div class="row">
+        <div class="col-6 text-right">Leistung</div>
+        <div class="col-6 text-right">Ladestand</div>
+      </div>
+      <div class="row">
+        <div class="col text-right text-monospace pl-0">
+          {{ formatNumberTopic(baseTopic + "/get/power", 3, 3, 0.001) }}&nbsp;kW
+        </div>
+        <div class="col text-right text-monospace pl-0">{{ $store.state.mqtt[baseTopic + "/get/soc"] }}&nbsp;%</div>
+      </div>
+    </openwb-base-card>
+    <!-- Zählerstände -->
+    <openwb-base-card
+      title="Zählerstände"
+      subtype="white"
+      body-bg="white"
+      class="py-1 mb-2"
+    >
+      <div class="row">
+        <div class="col"></div>
+        <div class="col text-right">Geladen</div>
+        <div class="col text-right">Entladen</div>
+      </div>
+      <div class="row">
+        <div class="col text-right">Heute</div>
+        <div class="col text-right text-monospace">
+          {{ formatNumberTopic(baseTopic + "/get/daily_imported", 3, 3, 0.001) }}&nbsp;kWh
+        </div>
+        <div class="col text-right text-monospace">
+          {{ formatNumberTopic(baseTopic + "/get/daily_exported", 3, 3, 0.001) }}&nbsp;kWh
+        </div>
+      </div>
+      <div class="row">
+        <div class="col text-right">Gesamt</div>
+        <div class="col text-right text-monospace">
+          {{ formatNumberTopic(baseTopic + "/get/imported", 3, 3, 0.001) }}&nbsp;kWh
+        </div>
+        <div class="col text-right text-monospace">
+          {{ formatNumberTopic(baseTopic + "/get/exported", 3, 3, 0.001) }}&nbsp;kWh
+        </div>
+      </div>
+    </openwb-base-card>
+    <openwb-base-card
+      title="Werte pro Phase"
+      subtype="white"
+      body-bg="white"
+      class="py-1 mb-2"
+    >
+      <div class="row">
+        <div class="col-md-4 pr-0 text-center text-md-right">Strom [A]</div>
+        <div class="col">
+          <div class="row">
+            <div class="col text-right text-monospace pl-0">
+              {{ formatPhaseArrayNumberTopic(baseTopic + "/get/currents", 2)[0] }}
+            </div>
+            <div class="col text-right text-monospace pl-0">
+              {{ formatPhaseArrayNumberTopic(baseTopic + "/get/currents", 2)[1] }}
+            </div>
+            <div class="col text-right text-monospace pl-0">
+              {{ formatPhaseArrayNumberTopic(baseTopic + "/get/currents", 2)[2] }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </openwb-base-card>
+  </status-card>
 </template>
 
 <script>
 import ComponentState from "../mixins/ComponentState.vue";
+import StatusCard from "./StatusCard.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faCheckCircle as fasCheckCircle,
-  faExclamationTriangle as fasExclamationTriangle,
-  faTimesCircle as fasTimesCircle,
-  faCarBattery as fasCarBattery,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCarBattery as fasCarBattery } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-library.add(fasCheckCircle, fasExclamationTriangle, fasTimesCircle, fasCarBattery);
+library.add(fasCarBattery);
 
 export default {
   name: "BatteryCard",
   components: {
+    StatusCard,
     FontAwesomeIcon,
   },
   mixins: [ComponentState],
@@ -91,8 +110,15 @@ export default {
   },
   data() {
     return {
-      statusLevel: ["success", "warning", "danger"],
+      mqttTopicsToSubscribe: [`openWB/bat/${this.battery.id}/get/+`],
     };
+  },
+  computed: {
+    baseTopic: {
+      get() {
+        return "openWB/bat/" + this.battery.id;
+      },
+    },
   },
 };
 </script>

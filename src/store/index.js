@@ -1,17 +1,31 @@
 import { createStore } from "vuex";
 
+// ChartLegend-Modul for Legenden-States
+const chartLegend = {
+  namespaced: true,
+  state: () => ({
+    hiddenDatasets: [],
+  }),
+  mutations: {
+    toggleDataset(state, label) {
+      if (state.hiddenDatasets.includes(label)) {
+        state.hiddenDatasets = state.hiddenDatasets.filter((hiddenLabel) => hiddenLabel !== label);
+      } else {
+        state.hiddenDatasets.push(label);
+      }
+    },
+    setHiddenDatasets(state, datasets) {
+      state.hiddenDatasets = datasets;
+    },
+  },
+};
+
 let states = {
   mqtt: {}, // will be filled with mqtt data
   mqttSubscriptions: {}, // will be filled with mqtt subscriptions count
   local: {
     reloadRequired: false,
     savingData: false,
-  },
-  text: {
-    rfidWiki:
-      "Bitte auch hiervon abhängige Einstellungen beachten. Eine Übersicht gibt es im " +
-      '<a href="https://github.com/openWB/core/wiki/Ladung-nur-nach-Freischaltung" ' +
-      'target="_blank" rel="noopener noreferrer">Wiki</a>.',
   },
 };
 
@@ -25,6 +39,8 @@ if (import.meta.env.MODE !== "production") {
     text5: "Benutzername",
     text6: "12:34",
     text7: "2021-10-31",
+    color1: "#ff0000",
+    color2: "#0000ff",
     number1: 5,
     number2: 10,
     number3: 0.00028,
@@ -73,6 +89,14 @@ if (import.meta.env.MODE !== "production") {
       4: "Batteriespeicher",
     },
     tags: ["1234", "2345", "3456"],
+    ioConfig: {
+      active: false,
+      pattern: [null, false, true],
+      action: {
+        value: "stop_all",
+        options: null,
+      },
+    },
   };
 }
 
@@ -138,7 +162,9 @@ export default createStore({
     },
   },
   actions: {},
-  modules: {},
+  modules: {
+    chartLegend, // Modul connected
+  },
   getters: {
     usageTermsAcknowledged(state) {
       return new Promise((resolve) => {

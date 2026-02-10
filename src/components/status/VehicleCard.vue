@@ -1,92 +1,65 @@
 <template>
-  <openwb-base-card
+  <status-card
     subtype="info"
-    :collapsible="true"
-    :collapsed="true"
+    :component-id="vehicleIndex"
+    :state="$store.state.mqtt[baseTopic + '/get/fault_state']"
+    :state-message="$store.state.mqtt[baseTopic + '/get/fault_str']"
   >
-    <template #header>
-      <font-awesome-icon
-        fixed-width
-        :icon="['fas', 'car']"
-      />
-      {{ vehicleName }} (ID: {{ vehicleIndex }})
+    <template #header-left>
+      <font-awesome-icon :icon="['fas', 'car']" />
+      {{ vehicleName }}
     </template>
-    <openwb-base-alert
-      v-if="$store.state.mqtt['openWB/vehicle/' + vehicleIndex + '/get/fault_state'] !== undefined"
-      :subtype="statusLevel[$store.state.mqtt['openWB/vehicle/' + vehicleIndex + '/get/fault_state']]"
+    <template
+      v-if="soc != '-'"
+      #header-right
     >
-      <font-awesome-icon
-        v-if="$store.state.mqtt['openWB/vehicle/' + vehicleIndex + '/get/fault_state'] == 1"
-        fixed-width
-        :icon="['fas', 'exclamation-triangle']"
-      />
-      <font-awesome-icon
-        v-else-if="$store.state.mqtt['openWB/vehicle/' + vehicleIndex + '/get/fault_state'] == 2"
-        fixed-width
-        :icon="['fas', 'times-circle']"
-      />
-      <font-awesome-icon
-        v-else
-        fixed-width
-        :icon="['fas', 'check-circle']"
-      />
-      Modulmeldung:<br />
-      <span style="white-space: pre-wrap">{{
-        $store.state.mqtt["openWB/vehicle/" + vehicleIndex + "/get/fault_str"]
-      }}</span>
-    </openwb-base-alert>
-    <openwb-base-heading>Fahrzeugdaten</openwb-base-heading>
-    <openwb-base-number-input
-      title="Ladestand"
-      readonly
-      class="text-right text-monospace"
-      unit="%"
-      :model-value="$store.state.mqtt['openWB/vehicle/' + vehicleIndex + '/get/soc']"
-    />
-    <openwb-base-number-input
-      title="Reichweite"
-      readonly
-      class="text-right text-monospace"
-      unit="km"
-      :model-value="socRange"
-    />
-    <openwb-base-text-input
-      title="Letzter Zeitstempel"
-      readonly
-      class="text-right text-monospace"
-      :model-value="socTimestamp"
-    />
-  </openwb-base-card>
+      {{ soc }}&nbsp;%
+    </template>
+    <!-- Fahrzeugdaten -->
+    <openwb-base-card
+      title="Fahrzeugdaten"
+      subtype="white"
+      body-bg="white"
+      class="py-1 mb-2"
+    >
+      <div class="row">
+        <div class="col pr-0 text-right">Ladestand</div>
+        <div class="col pr-0 text-right">Reichweite</div>
+        <div class="col pr-0 text-right">Letzter Zeitstempel</div>
+      </div>
+      <div class="row">
+        <div class="col text-right text-monospace">{{ soc }}&nbsp;%</div>
+        <div class="col text-right text-monospace">{{ socRange }}&nbsp;km</div>
+        <div class="col text-right text-monospace">{{ socTimestamp }}</div>
+      </div>
+    </openwb-base-card>
+  </status-card>
 </template>
 
 <script>
 import ComponentState from "../mixins/ComponentState.vue";
+import StatusCard from "./StatusCard.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
-import {
-  faCheckCircle as fasCheckCircle,
-  faExclamationTriangle as fasExclamationTriangle,
-  faTimesCircle as fasTimesCircle,
-  faCar as fasCar,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCar as fasCar } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-library.add(fasCheckCircle, fasExclamationTriangle, fasTimesCircle, fasCar);
+library.add(fasCar);
 
 export default {
   name: "VehicleCard",
   components: {
+    StatusCard,
     FontAwesomeIcon,
   },
   mixins: [ComponentState],
   props: {
-    vehicle: { type: Object, required: false, default: undefined },
     vehicleKey: { type: String, required: true },
     vehicleName: { type: String, default: "" },
   },
   data() {
     return {
-      statusLevel: ["success", "warning", "danger"],
+      mqttTopicsToSubscribe: ["openWB/vehicle/+/get/+"],
     };
   },
   computed: {
@@ -95,12 +68,15 @@ export default {
         return parseInt(this.vehicleKey.match(/(?:\/)(\d+)(?=\/)/)[1]);
       },
     },
+    soc: {
+      get() {
+        return this.formatNumberTopic(this.baseTopic + "/get/soc");
+      },
+    },
     socTimestamp: {
       get() {
-        if (this.$store.state.mqtt["openWB/vehicle/" + this.vehicleIndex + "/get/soc_timestamp"] !== undefined) {
-          return new Date(
-            this.$store.state.mqtt["openWB/vehicle/" + this.vehicleIndex + "/get/soc_timestamp"] * 1000,
-          ).toLocaleString();
+        if (this.$store.state.mqtt[this.baseTopic + "/get/soc_timestamp"] !== undefined) {
+          return new Date(this.$store.state.mqtt[this.baseTopic + "/get/soc_timestamp"] * 1000).toLocaleString();
         } else {
           return "-";
         }
@@ -108,11 +84,16 @@ export default {
     },
     socRange: {
       get() {
-        if (this.$store.state.mqtt["openWB/vehicle/" + this.vehicleIndex + "/get/range"] !== undefined) {
-          return Math.round(this.$store.state.mqtt["openWB/vehicle/" + this.vehicleIndex + "/get/range"]);
+        if (this.$store.state.mqtt[this.baseTopic + "/get/range"] !== undefined) {
+          return Math.round(this.$store.state.mqtt[this.baseTopic + "/get/range"]);
         } else {
           return 0;
         }
+      },
+    },
+    baseTopic: {
+      get() {
+        return "openWB/vehicle/" + this.vehicleIndex;
       },
     },
   },

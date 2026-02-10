@@ -1,4 +1,31 @@
 <template>
+  <!-- modal dialogs -->
+  <openwb-base-modal-dialog
+    :show="showDeprecatedFirmwareModal"
+    title="Achtung: Veraltete Software!"
+    subtype="danger"
+    :prevent-close="true"
+    :buttons="[
+      { text: 'Trotzdem versenden', event: 'confirm', subtype: 'danger' },
+      { text: 'Nicht versenden', event: 'closeDialog' },
+    ]"
+    @modal-result="verifyModalInput($event)"
+  >
+    Möglicherweise wurde das Problem bereits behoben.<br />
+    Bitte führe vor dem Absenden ein
+    <router-link to="/System/SystemConfiguration"> Update </router-link>
+    durch.<br />
+    Falls ein Update nicht möglich ist, kann der Systembericht dennoch versendet werden. Falls kein Update gewünscht
+    ist, bieten wir auch über unseren Partner WB Solution GmbH
+    <a
+      href="https://wb-solution.de/produkt/support-token-aeltere-version/"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Support für ältere Softwareversionen</a
+    >
+    an.
+  </openwb-base-modal-dialog>
+  <!-- main content -->
   <div class="support">
     <form name="supportForm">
       <openwb-base-alert
@@ -17,6 +44,9 @@
         </openwb-base-alert>
         <openwb-base-card title="Systembericht">
           <div v-if="$store.state.mqtt['openWB/system/dataprotection_acknowledged'] === true">
+            <openwb-base-alert subtype="danger">
+              Vergewissere Dich, dass mindestens die aktuelle "Release" Version installiert ist.
+            </openwb-base-alert>
             <openwb-base-alert subtype="info">
               <ul>
                 <li>
@@ -24,14 +54,13 @@
                   <FontAwesomeIcon :icon="['far', 'question-circle']" />
                   angezeigt wird. Nimm das Wiki zur Hilfe.
                 </li>
-                <li>Vergewissere Dich , dass mindestens die aktuelle "Release" Version installiert ist.</li>
                 <li>
                   Stelle beim Absenden des Berichtes die Fehlerkonditionen her. Lädt ein Fahrzeug nicht, sollte es
                   angeschlossen und nicht voll geladen sein. Ist PV laden betroffen, sollte die Sonne auch scheinen. Der
                   Systembericht muss dann versendet werden, wenn der Fehler aktuell vorliegt.
                 </li>
                 <li>
-                  Stelle sicher, dass der Lademodus gewählt ist und im Falle von nicht ladenden ladenden Fahrzeugen,
+                  Stelle sicher, dass der richtige Lademodus gewählt ist und im Falle von nicht ladenden Fahrzeugen,
                   dass der Ladepunkt auch entsperrt wurde.
                 </li>
                 <li>
@@ -51,6 +80,26 @@
               subtype="email"
             >
               <template #help> Deine E-Mail-Adresse, an die der Support Dir antwortet. </template>
+            </openwb-base-text-input>
+            <openwb-base-text-input
+              v-model="subject"
+              title="Betreff"
+              required
+              minlength="15"
+              maxlength="100"
+            >
+              <template #help> Du kannst hier einen kurzen Titel für dein Problem angeben. </template>
+            </openwb-base-text-input>
+            <openwb-base-text-input
+              v-model="ticketNumber"
+              title="Bestehende Ticketnummer"
+              maxlength="8"
+              pattern="[1-9][0-9]{7}"
+            >
+              <template #help>
+                Hier kann eine bereits bestehende Ticketnummer eingegeben werden, damit das Ticket schneller zugeordnet
+                werden kann.
+              </template>
             </openwb-base-text-input>
             <openwb-base-text-input
               title="openWB Seriennummer"
@@ -112,7 +161,7 @@
                 class="col-4"
                 :class="enableSendDebugButton ? 'btn-success' : 'btn-outline-success'"
                 :disabled="!enableSendDebugButton"
-                @button-clicked="sendDebugMessage"
+                @button-clicked="checkFirmware"
               >
                 Absenden
               </openwb-base-click-button>
@@ -124,10 +173,7 @@
           subtype="success"
         >
           Die Daten für den Fehlerbericht werden im Hintergrund zusammengestellt. Du kannst diese Seite jetzt verlassen.
-          <font-awesome-icon
-            fixed-width
-            :icon="['fas', 'check']"
-          />
+          <font-awesome-icon :icon="['fas', 'check']" />
         </openwb-base-alert>
       </div>
     </form>
@@ -160,9 +206,15 @@ export default {
         "openWB/system/device/+/component/+/config",
         "openWB/vehicle/+/name",
         "openWB/vehicle/+/info",
+
+        "openWB/system/current_commit",
+        "openWB/system/current_branch_commit",
       ],
+      showDeprecatedFirmwareModal: false,
       email: undefined,
       components: undefined,
+      subject: undefined,
+      ticketNumber: undefined,
       vehicles: undefined,
       message: undefined,
       enableSendDebugButton: true,
@@ -172,6 +224,8 @@ export default {
     debugData() {
       return {
         email: this.email,
+        subject: this.subject,
+        ticketNumber: this.ticketNumber,
         serialNumber: this.$store.state.mqtt["openWB/system/serial_number"],
         installedComponents: this.installedComponents,
         vehicles: this.vehicleInfo,
@@ -208,6 +262,16 @@ export default {
       }
       return vehicleText.trim();
     },
+    updateAvailable() {
+      return (
+        this.$store.state.mqtt["openWB/system/current_branch_commit"] &&
+        this.$store.state.mqtt["openWB/system/current_branch_commit"] !=
+          this.$store.state.mqtt["openWB/system/current_commit"]
+      );
+    },
+  },
+  beforeMount() {
+    this.sendSystemCommand("systemFetchVersions");
   },
   methods: {
     sendDebugMessage() {
@@ -222,6 +286,25 @@ export default {
         });
         this.enableSendDebugButton = false;
       }
+    },
+    checkFirmware() {
+      if (this.updateAvailable) {
+        this.showDeprecatedFirmwareModal = true;
+      } else {
+        this.sendDebugMessage();
+      }
+    },
+    verifyModalInput(event) {
+      this.showDeprecatedFirmwareModal = false;
+      if (event == "confirm") {
+        this.sendDebugMessage();
+      }
+    },
+    sendSystemCommand(command, data = {}) {
+      this.$emit("sendCommand", {
+        command: command,
+        data: data,
+      });
     },
   },
 };

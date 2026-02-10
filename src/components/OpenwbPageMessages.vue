@@ -11,7 +11,6 @@
         style="font-size: 175%"
       >
         <font-awesome-icon
-          fixed-width
           :icon="showAllMessages ? ['fas', 'bell'] : ['far', 'bell']"
           :class="messageIndicatorClass"
         />
@@ -202,13 +201,14 @@ export default {
   right: 0;
   top: 55px;
   padding: 0.25rem;
-  max-width: 275px;
+  width: 275px;
 }
 
 .openwb-toast-container.full-height {
-  bottom: 30px;
+  bottom: 0;
   overflow-y: auto;
   background-color: var(--dark);
   border: 1px solid var(--dark);
+  box-shadow: -4px 0 8px 4px rgba(0, 0, 0, 0.15);
 }
 </style>

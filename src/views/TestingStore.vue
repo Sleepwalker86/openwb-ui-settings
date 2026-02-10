@@ -4,6 +4,12 @@
       <openwb-base-card title="Elemente mit BaseSettingElement">
         <OpenwbBaseHeading> Basiselement </OpenwbBaseHeading>
         <OpenwbBaseSettingElement>
+          <template #title>
+            <span style="font-style: italic">
+              Styled
+              <span style="font-weight: bold">Title</span> Slot
+            </span>
+          </template>
           <template #help>
             Basis-Element für alle weiteren Elemente. Das ist ein
             <a href="test">Link</a>.
@@ -38,7 +44,20 @@
           :model-value="$store.state.examples.text1"
           @update:model-value="updateState('text1', $event)"
         >
-          <template #help> Einfacher Text </template>
+          <template #help>
+            Einfacher Text<br />
+            Diese Komponente hat einen Slot "append" für zusätzliche Elemente, die rechts vom Eingabefeld angezeigt
+            werden sollen. Das ist hier z.B. ein Farbauswahl-Element. Die Farbe kann zurückgesetzt werden, weil eine
+            Standardfarbe gesetzt ist. Das ist hier z.B. rot (#ff0000).
+          </template>
+          <template #append>
+            <openwb-base-color-picker
+              class="p-1"
+              :model-value="$store.state.examples.color1"
+              default-color="#ff0000"
+              @update:model-value="updateState('color1', $event)"
+            />
+          </template>
         </openwb-base-text-input>
         <openwb-base-text-input
           title="2. Text (E-Mail)"
@@ -98,7 +117,19 @@
           :model-value="$store.state.examples.number1"
           @update:model-value="updateState('number1', $event)"
         >
-          <template #help> Zahl mit Einheit </template>
+          <template #help>
+            Zahl mit Einheit.<br />
+            Diese Komponente hat einen Slot "append" für zusätzliche Elemente, die rechts vom Eingabefeld angezeigt
+            werden sollen. Das ist hier z.B. ein Farbauswahl-Element. Ohne Standardfarbe kann die Farbe nicht
+            zurückgesetzt werden.
+          </template>
+          <template #append>
+            <openwb-base-color-picker
+              class="p-1"
+              :model-value="$store.state.examples.color2"
+              @update:model-value="updateState('color2', $event)"
+            />
+          </template>
         </openwb-base-number-input>
         <openwb-base-number-input
           title="2. Zahl"
@@ -236,6 +267,19 @@
         >
           <template #help> Hilfetext </template>
         </openwb-base-button-group-input>
+        <openwb-base-heading>
+          Select Element ohne Label:
+          <openwb-base-select-input
+            class="mb-1"
+            not-selected="Bitte auswählen"
+            :options="[
+              { value: 1, text: 'Eins' },
+              { value: 2, text: 'Zwei' },
+            ]"
+            :model-value="$store.state.examples.select1"
+            @update:model-value="updateState('select1', $event)"
+          />
+        </openwb-base-heading>
         <hr />
         <openwb-base-checkbox-input
           title="1. Checkbox"
@@ -294,7 +338,10 @@
             <a href="test">Link</a>
           </template>
         </openwb-base-heading>
-        <openwb-base-alert> Meldung ohne speziellen Subtype. </openwb-base-alert>
+        <openwb-base-alert>
+          Meldung ohne speziellen Subtype.
+          <openwb-base-copy-to-clipboard>Kopiere mich!</openwb-base-copy-to-clipboard>
+        </openwb-base-alert>
         <openwb-base-alert subtype="info"> Infomeldung </openwb-base-alert>
         <openwb-base-alert subtype="warning"> Warnmeldung </openwb-base-alert>
         <openwb-base-alert subtype="danger"> Fehlermeldung </openwb-base-alert>

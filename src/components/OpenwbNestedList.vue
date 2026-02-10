@@ -16,27 +16,27 @@
           <span>
             <font-awesome-icon
               class="handle"
-              fixed-width
-              :icon="['fas', 'arrows-alt']"
+              :icon="['fas', nesting ? 'arrows-alt' : 'arrows-up-down']"
             />
             <font-awesome-icon
               v-if="getElementIcon(element)"
-              fixed-width
               :icon="getElementIcon(element)"
             />
             {{ getElementLabel(element.id) }}
           </span>
           <!-- <span class="element-actions">
             <font-awesome-icon
-              fixed-width
+
               :icon="['fas', 'edit']"
               @click="elementEdit(element.id)"
             />
           </span> -->
         </div>
         <openwb-nested-list
+          v-if="nesting && element.children"
           v-model="element.children"
           :labels="labels"
+          :nesting="nesting"
         />
       </li>
     </template>
@@ -49,6 +49,7 @@ import draggable from "vuedraggable";
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faArrowsAlt as fasArrowsAlt,
+  faArrowsUpDown as fasArrowsUpDown,
   faChargingStation as fasChargingStation,
   faCarBattery as fasCarBattery,
   faSolarPanel as fasSolarPanel,
@@ -56,7 +57,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 
-library.add(fasArrowsAlt, fasChargingStation, fasCarBattery, fasSolarPanel, fasGaugeHigh);
+library.add(fasArrowsAlt, fasArrowsUpDown, fasChargingStation, fasCarBattery, fasSolarPanel, fasGaugeHigh);
 
 export default {
   name: "OpenwbNestedList",
@@ -67,6 +68,7 @@ export default {
   props: {
     list: { type: Object, required: false, default: undefined },
     labels: { type: Object, required: false, default: undefined },
+    nesting: { type: Boolean, default: true },
   },
   methods: {
     classes(element) {
@@ -104,9 +106,6 @@ export default {
           return undefined;
       }
     },
-    // elementEdit(id) {
-    //   console.log("edit Element:", id);
-    // },
   },
 };
 </script>

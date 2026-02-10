@@ -31,7 +31,7 @@
           subtype="danger"
           class="mb-1"
         >
-          Sie müssen die Nutzungsbedingungen akzeptieren, bevor openWB eingesetzt werden kann.
+          Du musst die Nutzungsbedingungen akzeptieren, bevor openWB eingesetzt werden kann.
           <div class="row justify-content-center">
             <div class="col-md-4 d-flex justify-content-center">
               <openwb-base-click-button
@@ -39,10 +39,7 @@
                 @button-clicked="sendSystemCommand('systemShutdown')"
               >
                 Nicht akzeptieren und ausschalten
-                <font-awesome-icon
-                  fixed-width
-                  :icon="['fas', 'power-off']"
-                />
+                <font-awesome-icon :icon="['fas', 'power-off']" />
               </openwb-base-click-button>
             </div>
           </div>
@@ -76,7 +73,7 @@
             form-name="dataProtectionForm"
             :hide-reset="true"
             :hide-defaults="true"
-            @save="$emit('save')"
+            @save="onSaveLegal"
           />
         </template>
       </openwb-base-card>
@@ -113,6 +110,37 @@ export default {
         command: command,
         data: data,
       });
+    },
+    async onSaveLegal() {
+      this.$emit("save");
+      await new Promise((resolve) => {
+        const stopWatching = this.$watch(
+          () => this.$store.state.local.savingData,
+          (val) => {
+            if (val === false) {
+              stopWatching();
+              resolve();
+            }
+          },
+        );
+      });
+      if (!this.$store.state.mqtt["openWB/system/usage_terms_acknowledged"]) {
+        await new Promise((resolve) => {
+          const stopWatching = this.$watch(
+            () => this.$store.state.mqtt["openWB/system/usage_terms_acknowledged"],
+            (val) => {
+              if (val) {
+                stopWatching();
+                resolve();
+              }
+            },
+          );
+        });
+      }
+      const installAssistantDone = await this.$store.getters.installAssistantDone;
+      if (!installAssistantDone) {
+        this.$router.push({ name: "InstallAssistant" });
+      }
     },
   },
 };

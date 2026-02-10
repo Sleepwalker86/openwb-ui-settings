@@ -3,26 +3,20 @@
     v-if="displayTheme.official"
     subtype="success"
   >
-    <font-awesome-icon
-      fixed-width
-      :icon="['fas', 'certificate']"
-    />
+    <font-awesome-icon :icon="['fas', 'certificate']" />
     Das ausgewählte Display Theme "{{ displayTheme.name }}" wird von openWB gepflegt.
   </openwb-base-alert>
   <openwb-base-alert
     v-else
     subtype="info"
   >
-    <font-awesome-icon
-      fixed-width
-      :icon="['fas', 'people-group']"
-    />
+    <font-awesome-icon :icon="['fas', 'people-group']" />
     Das ausgewählte Display Theme "{{ displayTheme.name }}" wird in unserer Community gepflegt. Rückfragen oder Probleme
     bitte im Forum diskutieren.
   </openwb-base-alert>
   <openwb-base-heading> Einstellungen für Display Theme "{{ displayTheme.name }}" </openwb-base-heading>
   <component
-    :is="myComponent"
+    :is="getDisplayThemeComponent()"
     :display-theme="displayTheme"
     @update:configuration="updateConfiguration($event)"
   />
@@ -47,16 +41,14 @@ export default {
     displayTheme: { type: Object, required: true },
   },
   emits: ["update:configuration"],
-  computed: {
-    myComponent() {
+  methods: {
+    getDisplayThemeComponent() {
       console.debug(`loading display theme: ${this.displayTheme.type}`);
       return defineAsyncComponent({
         loader: () => import(`./${this.displayTheme.type}/displayTheme.vue`),
         errorComponent: OpenwbDisplayThemeFallback,
       });
     },
-  },
-  methods: {
     updateConfiguration(event) {
       this.$emit("update:configuration", event);
     },

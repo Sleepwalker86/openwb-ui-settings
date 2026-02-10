@@ -1,19 +1,24 @@
 <template>
   <span
-    ref="slot-wrapper"
-    :title="tooltip"
-    class="copy-me"
-    @click="click"
+    :title="copySupported && !isCopied ? tooltip : ''"
+    :class="{ 'copy-me': copySupported && !isCopied }"
+    @click.stop="click"
   >
-    <slot />
+    <span ref="content">
+      <slot />
+    </span>
     <font-awesome-icon
-      fixed-width
+      v-if="copySupported"
+      class="ml-1"
       :icon="isCopied ? ['fas', 'clipboard-check'] : ['fas', 'clipboard']"
     />
   </span>
 </template>
 
 <script>
+import { useClipboard } from "@vueuse/core";
+const { text, copy, copied, isSupported } = useClipboard({ copiedDuring: 3000, legacy: true });
+
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faClipboard as fasClipboard, faClipboardCheck as fasClipboardCheck } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
@@ -29,43 +34,29 @@ export default {
     tooltip: { type: String, default: "Wert kopieren" },
   },
   data() {
-    return {
-      clipboardApiAvailable: navigator.clipboard != undefined,
-      isCopied: false,
-    };
+    return {};
+  },
+  computed: {
+    contentText() {
+      return this.$refs["content"] ? this.$refs["content"].innerText.trim() : "";
+    },
+    isCopied() {
+      return copied.value && text.value === this.contentText;
+    },
+    copySupported() {
+      return isSupported.value;
+    },
   },
   methods: {
     click() {
-      // event.target may be our icon, so we use a ref here
-      console.debug(this.$refs["slot-wrapper"].innerText);
-      if (this.clipboardApiAvailable) {
-        navigator.clipboard.writeText(this.$refs["slot-wrapper"].innerText).then(
-          () => {
-            this.isCopied = true;
-          },
-          () => {
-            console.error("copy to clipboard failed");
-          },
-        );
-      } else {
-        console.debug("clipboard api not supported/enabled, fallback to select");
-        if (window.getSelection) {
-          console.debug("using 'window.getSelection'");
-          const selection = window.getSelection();
-          const range = document.createRange();
-          range.selectNodeContents(this.$refs["slot-wrapper"]);
-          selection.removeAllRanges();
-          selection.addRange(range);
-          return;
-        }
-        if (document.body.createTextRange) {
-          console.debug("using 'document.body.createTextRange'");
-          const range = document.body.createTextRange();
-          range.moveToElementText(this.$refs["slot-wrapper"]);
-          range.select();
-        } else {
-          console.warn("could not select text, unsupported browser");
-        }
+      if (this.copySupported) {
+        copy(this.contentText)
+          .then(() => {
+            console.debug("Text copied to clipboard:", text.value);
+          })
+          .catch((error) => {
+            console.error("Failed to copy text to clipboard:", error);
+          });
       }
     },
   },

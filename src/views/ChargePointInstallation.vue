@@ -5,37 +5,20 @@
     title="Ladepunkt löschen"
     subtype="danger"
     :buttons="[{ text: 'Löschen', event: 'confirm', subtype: 'danger' }]"
-    @modal-result="removeChargePoint(modalChargePointIndex, $event)"
+    @modal-result="removeChargePoint($event, modalChargePointIndex)"
   >
-    Wollen Sie den Ladepunkt "{{ getChargePointName(modalChargePointIndex) }}" (ID: {{ modalChargePointIndex }})
-    wirklich entfernen? Dieser Vorgang kann nicht rückgängig gemacht werden!
+    Willst Du den Ladepunkt "{{ getChargePointName(modalChargePointIndex) }}" (ID: {{ modalChargePointIndex }}) wirklich
+    entfernen? Dieser Vorgang kann nicht rückgängig gemacht werden!
   </openwb-base-modal-dialog>
   <openwb-base-modal-dialog
     :show="showChargePointTemplateModal"
     title="Ladepunkt-Profil löschen"
     subtype="danger"
     :buttons="[{ text: 'Löschen', event: 'confirm', subtype: 'danger' }]"
-    @modal-result="removeChargePointTemplate(modalChargePointTemplateIndex, $event)"
+    @modal-result="removeChargePointTemplate($event, modalChargePointTemplateIndex)"
   >
-    Wollen Sie das Ladepunkt-Profil "{{ getChargePointTemplateName(modalChargePointTemplateIndex) }}" (ID:
+    Willst Du das Ladepunkt-Profil "{{ getChargePointTemplateName(modalChargePointTemplateIndex) }}" (ID:
     {{ modalChargePointTemplateIndex }}) wirklich entfernen? Dieser Vorgang kann nicht rückgängig gemacht werden!
-  </openwb-base-modal-dialog>
-  <openwb-base-modal-dialog
-    :show="showChargePointTemplateAutolockPlanModal"
-    title="Autolock Zeitplan löschen"
-    subtype="danger"
-    :buttons="[{ text: 'Löschen', event: 'confirm', subtype: 'danger' }]"
-    @modal-result="
-      removeChargePointTemplateAutolockPlan(
-        modalChargePointTemplateIndex,
-        modalChargePointTemplateAutolockPlanIndex,
-        $event,
-      )
-    "
-  >
-    Wollen Sie den Autolock Zeitplan "{{
-      getChargePointTemplateAutolockPlanName(modalChargePointTemplateIndex, modalChargePointTemplateAutolockPlanIndex)
-    }}" wirklich entfernen? Dieser Vorgang kann nicht rückgängig gemacht werden!
   </openwb-base-modal-dialog>
   <!-- main content -->
   <div class="chargePointInstallation">
@@ -48,16 +31,23 @@
         :collapsed="!installAssistantActive"
       >
         <template #header>
-          <font-awesome-icon
-            fixed-width
-            :icon="['fas', 'charging-station']"
-          />
+          <font-awesome-icon :icon="['fas', 'charging-station']" />
           Ladepunkte
         </template>
+        <openwb-base-alert subtype="info">
+          Eine detaillierte Anleitung zur Einrichtung der Ladepunkte findet sich in unserem
+          <a
+            href="https://wiki.openwb.de/doku.php?id=openwb:vc:2.1.9:software:einstell-konfig:konfiguration:ladepunkte:openwb"
+            target="_blank"
+            rel="noopener noreferrer"
+            >Wiki</a
+          >
+          .
+        </openwb-base-alert>
         <openwb-base-card
           v-for="(installedChargePoint, installedChargePointKey) in installedChargePoints"
           :key="installedChargePointKey"
-          :title="installedChargePoint.name + ' (ID: ' + installedChargePoint.id + ')'"
+          :title="installedChargePoint?.name + ' (ID: ' + installedChargePoint?.id + ')'"
           :collapsible="true"
           :collapsed="true"
           subtype="primary"
@@ -66,18 +56,16 @@
             <openwb-base-avatar
               v-if="!slotProps.collapsed"
               class="bg-danger clickable"
-              @click="removeChargePointModal(installedChargePointKey, $event)"
+              title="Ladepunkt löschen"
+              @click="removeChargePointModal($event, installedChargePointKey)"
             >
-              <font-awesome-icon
-                fixed-width
-                :icon="['fas', 'trash']"
-              />
+              <font-awesome-icon :icon="['fas', 'trash']" />
             </openwb-base-avatar>
           </template>
           <openwb-base-text-input
             title="Bezeichnung"
             subtype="text"
-            :model-value="installedChargePoint.name"
+            :model-value="installedChargePoint?.name"
             @update:model-value="updateState(installedChargePointKey, $event, 'name')"
           />
           <openwb-base-text-input
@@ -89,7 +77,7 @@
           />
           <span
             v-if="
-              installedChargePoint.type !== 'internal_openwb' || $store.state.mqtt['openWB/general/extern'] === false
+              installedChargePoint?.type !== 'internal_openwb' || $store.state.mqtt['openWB/general/extern'] === false
             "
           >
             <openwb-base-select-input
@@ -102,12 +90,12 @@
           <openwb-base-text-input
             v-if="$store.state.mqtt['openWB/optional/ocpp/config']['active'] === true"
             title="OCPP-Chargebox ID"
-            :model-value="installedChargePoint.ocpp_chargebox_id"
+            :model-value="installedChargePoint?.ocpp_chargebox_id"
             @update:model-value="updateState(installedChargePointKey, $event, 'ocpp_chargebox_id')"
           >
             <template #help>
-              Bitte geben Sie hier die Chargebox ID ein, die im OCPP-Backend für diesen Ladepunkt verwendet wird. Sollen
-              die Daten dieses Ladepunktes nicht an ein OCPP-Backend übertragen werden, lasse dieses Feld leer.
+              Bitte gib hier die Chargebox ID ein, die im OCPP-Backend für diesen Ladepunkt verwendet wird. Sollen die
+              Daten dieses Ladepunktes nicht an ein OCPP-Backend übertragen werden, lasse dieses Feld leer.
             </template>
           </openwb-base-text-input>
           <hr />
@@ -117,9 +105,9 @@
           />
           <div
             v-if="
-              (installedChargePoint.type !== 'internal_openwb' ||
+              (installedChargePoint?.type !== 'internal_openwb' ||
                 $store.state.mqtt['openWB/general/extern'] === false) &&
-              installedChargePoint.charging_type !== 'DC'
+              installedChargePoint?.charging_type !== 'DC'
             "
           >
             <hr />
@@ -130,7 +118,7 @@
                 { buttonValue: false, text: 'Nein' },
                 { buttonValue: true, text: 'Ja' },
               ]"
-              :model-value="installedChargePoint.auto_phase_switch_hw"
+              :model-value="installedChargePoint?.auto_phase_switch_hw"
               @update:model-value="updateState(installedChargePointKey, $event, 'auto_phase_switch_hw')"
             />
             <openwb-base-button-group-input
@@ -139,7 +127,7 @@
                 { buttonValue: false, text: 'Nein' },
                 { buttonValue: true, text: 'Ja' },
               ]"
-              :model-value="installedChargePoint.control_pilot_interruption_hw"
+              :model-value="installedChargePoint?.control_pilot_interruption_hw"
               @update:model-value="updateState(installedChargePointKey, $event, 'control_pilot_interruption_hw')"
             >
               <template #help>
@@ -158,7 +146,7 @@
                 { buttonValue: 2, text: '2' },
                 { buttonValue: 3, text: '3' },
               ]"
-              :model-value="installedChargePoint.connected_phases"
+              :model-value="installedChargePoint?.connected_phases"
               @update:model-value="updateState(installedChargePointKey, $event, 'connected_phases')"
             />
             <openwb-base-button-group-input
@@ -168,7 +156,7 @@
                 { buttonValue: 2, text: 'EVU L2' },
                 { buttonValue: 3, text: 'EVU L3' },
               ]"
-              :model-value="installedChargePoint.phase_1"
+              :model-value="installedChargePoint?.phase_1"
               @update:model-value="updateState(installedChargePointKey, $event, 'phase_1')"
             >
               <template #help>
@@ -208,7 +196,8 @@
                 steuert = primary oder ferngesteuert wird = secondary
               </li>
               <li>
-                Externe openWB - wenn diese openWB (primary) die Fernsteuerung von externen openWB (secondary) übernimmt
+                Secondary openWB - wenn diese openWB (primary) die Fernsteuerung von weiteren openWB (secondary)
+                übernimmt
               </li>
               <li>MQTT-Ladepunkt - nur zur Nutzung des openWB-Simulators zugelassen</li>
               <li>openWB Pro - wenn diese openWB (primary) die Fernsteuerung einer openWB Pro (secondary) übernimmt</li>
@@ -223,24 +212,21 @@
           </template>
         </openwb-base-select-input>
       </openwb-base-card>
-      <hr class="border-secondary" />
+      <hr
+        v-if="$store.state.mqtt['openWB/general/extern'] == false || !installAssistantActive"
+        class="border-secondary"
+      />
       <!-- charge point template card -->
       <openwb-base-card
+        v-if="$store.state.mqtt['openWB/general/extern'] === false || !installAssistantActive"
         title="Ladepunkt-Profile"
         :collapsible="true"
         :collapsed="true"
       >
         <template #header>
-          <font-awesome-layers
-            fixed-width
-            class="fa-lg"
-          >
+          <font-awesome-layers class="fa-lg">
+            <font-awesome-icon :icon="['far', 'file']" />
             <font-awesome-icon
-              fixed-width
-              :icon="['far', 'file']"
-            />
-            <font-awesome-icon
-              fixed-width
               :icon="['fas', 'charging-station']"
               transform="shrink-8"
             />
@@ -251,12 +237,10 @@
           <openwb-base-avatar
             v-if="$store.state.mqtt['openWB/general/extern'] === false"
             class="bg-success clickable"
+            title="Neues Ladepunkt-Profil anlegen"
             @click="addChargePointTemplate"
           >
-            <font-awesome-icon
-              fixed-width
-              :icon="['fas', 'plus']"
-            />
+            <font-awesome-icon :icon="['fas', 'plus']" />
           </openwb-base-avatar>
         </template>
         <div v-if="$store.state.mqtt['openWB/general/extern'] === true">
@@ -268,23 +252,26 @@
           <openwb-base-card
             v-for="(chargePointTemplate, chargePointTemplateKey) in chargePointTemplates"
             :key="chargePointTemplateKey"
-            :title="chargePointTemplate.name + ' (ID: ' + getChargePointTemplateIndex(chargePointTemplateKey) + ')'"
+            :title="`${chargePointTemplate.name} (ID: ${getChargePointTemplateIndex(chargePointTemplateKey)})`"
             :collapsible="true"
             :collapsed="true"
           >
-            <template
-              v-if="!chargePointTemplateKey.endsWith('/0')"
-              #actions="slotProps"
-            >
+            <template #actions="slotProps">
               <openwb-base-avatar
-                v-if="!slotProps.collapsed"
-                class="bg-danger clickable"
-                @click="removeChargePointTemplateModal(chargePointTemplateKey, $event)"
+                v-if="slotProps.collapsed == false"
+                class="bg-success clickable"
+                title="Ladepunkt-Profil duplizieren"
+                @click="addChargePointTemplate($event, chargePointTemplateKey)"
               >
-                <font-awesome-icon
-                  fixed-width
-                  :icon="['fas', 'trash']"
-                />
+                <font-awesome-icon :icon="['fas', 'copy']" />
+              </openwb-base-avatar>
+              <openwb-base-avatar
+                v-if="slotProps.collapsed == false && !chargePointTemplateKey.endsWith('/0')"
+                class="bg-danger clickable ml-1"
+                title="Ladepunkt-Profil löschen"
+                @click="removeChargePointTemplateModal($event, chargePointTemplateKey)"
+              >
+                <font-awesome-icon :icon="['fas', 'trash']" />
               </openwb-base-avatar>
             </template>
             <openwb-base-text-input
@@ -312,38 +299,48 @@
               @update:model-value="updateState(chargePointTemplateKey, $event, 'charging_type')"
             />
             <hr />
-            <openwb-base-heading> Zugangskontrolle </openwb-base-heading>
-            <openwb-base-button-group-input
-              title="Sperre nach Abstecken"
-              :buttons="[
-                {
-                  buttonValue: false,
-                  text: 'Nein',
-                  class: 'btn-outline-danger',
-                },
-                {
-                  buttonValue: true,
-                  text: 'Ja',
-                  class: 'btn-outline-success',
-                },
-              ]"
-              :model-value="chargePointTemplate.disable_after_unplug"
-              @update:model-value="updateState(chargePointTemplateKey, $event, 'disable_after_unplug')"
-            >
-              <template #help> Sperrt den Ladepunkt nach Abstecken eines Fahrzeuges. </template>
-            </openwb-base-button-group-input>
-            <div v-if="$store.state.mqtt['openWB/optional/rfid/active'] === true && !installAssistantActive">
-              <openwb-base-array-input
-                v-if="chargePointTemplate.disable_after_unplug"
-                title="Zugeordnete ID-Tags"
-                no-elements-message="Keine ID-Tags zugeordnet."
-                :model-value="chargePointTemplate.valid_tags"
-                @update:model-value="updateState(chargePointTemplateKey, $event, 'valid_tags')"
-              >
-                <template #help>
-                  Die hier eingetragenen ID-Tags dienen ausschließlich zum Entsperren des Ladepunktes.
-                </template>
-              </openwb-base-array-input>
+            <div v-if="!installAssistantActive">
+              <openwb-base-heading> Zugangskontrolle </openwb-base-heading>
+              <div v-if="chargePointTemplate.valid_tags.length > 0">
+                <openwb-base-alert subtype="info">
+                  Einstellungen zur Zugangskontrolle finden sich unter
+                  <router-link to="/IdentificationConfig"> Einstellungen - Identifikation </router-link>.
+                  <div
+                    v-if="
+                      $store.state.mqtt['openWB/optional/rfid/active'] === true &&
+                      chargePointTemplate.disable_after_unplug
+                    "
+                  >
+                    Ladepunkte mit diesem Profil werden automatisch beim Abstecken eines Fahrzeugs gesperrt und müssen
+                    für den nächsten Ladevorgang mit einem ID-Tag entsperrt werden.
+                  </div>
+                  <div v-else-if="$store.state.mqtt['openWB/optional/rfid/active'] === false">
+                    Die Zugangskontrolle ist aktuell deaktiviert.
+                  </div>
+                  <div v-else>
+                    Die Zugangskontrolle ist aktiviert, jedoch werden Ladepunkte mit diesem Profil nicht automatisch
+                    nach dem Abstecken eines Fahrzeugs gesperrt.
+                  </div>
+                </openwb-base-alert>
+                <openwb-base-array-input
+                  title="Zugeordnete ID-Tags"
+                  no-elements-message="Keine keine ID-Tags zugeordnet."
+                  :readonly="true"
+                  :model-value="chargePointTemplate.valid_tags"
+                >
+                  <template #help>
+                    Hier werden die ID-Tags aufgelistet, welche diesem Ladepunkt-Profil zugeordnet sind. Nur mit diesen
+                    ID-Tags können Ladepunkte, denen dieses Profil zugeordnet ist, entsperrt werden.
+                  </template>
+                </openwb-base-array-input>
+              </div>
+              <div v-else>
+                <openwb-base-alert subtype="info">
+                  Einstellungen zur Zugangskontrolle finden sich unter
+                  <router-link to="/IdentificationConfig"> Einstellungen - Identifikation </router-link>.<br />
+                  Dem Ladepunkt-Profil sind aktuell keine ID-Tags zum Entsperren zugeordnet.
+                </openwb-base-alert>
+              </div>
             </div>
             <hr />
             <openwb-base-heading> Angaben zum konfigurierten Ladestrom der openWB </openwb-base-heading>
@@ -355,16 +352,8 @@
               <span v-if="chargePointTemplate.charging_type === 'AC'">
                 Bei einer openWB mit 22kW Maximalleistung sind hier jeweils 32A einzustellen. Ist die openWB
                 beispielsweise auf 11kW begrenzt (KfW-Förderung oder die Zuleitung ist mit 16A abgesichert), dann sind
-                hier jeweils 16A einzustellen. </span
-              ><br />
-              Komplexere Installationen mit mehreren Ladepunkten werden im
-              <a
-                href="https://github.com/openWB/core/wiki/Lastmanagement-und-kaskadierte-Z%C3%A4hler"
-                target="_blank"
-                rel="noopener noreferrer"
-                >Wiki zum Lastmanagement</a
-              >
-              beschrieben.
+                hier jeweils 16A einzustellen.
+              </span>
             </openwb-base-alert>
             <div v-if="chargePointTemplate.charging_type === 'AC' || dcChargingEnabled !== true">
               <openwb-base-range-input
@@ -389,20 +378,21 @@
             <openwb-base-number-input
               v-else
               title="Maximalleistung"
-              :min="75"
-              :max="300"
-              :step="75"
+              :min="22"
+              :max="420"
+              :step="1"
               unit="kW"
               :precision="5"
               :model-value="ac_current2dc_power(chargePointTemplate.dc_max_current)"
               @update:model-value="updateState(chargePointTemplateKey, dc_power2ac_current($event), 'dc_max_current')"
             />
-            <hr />
             <div v-if="!installAssistantActive">
               <hr />
-              <openwb-base-heading> Automatische Sperre </openwb-base-heading>
+              <openwb-base-heading>
+                Sperren nach Uhrzeit (Komplettsperrung - Freischaltung per Identifikation möglich)
+              </openwb-base-heading>
               <openwb-base-button-group-input
-                title="Automatische Sperre aktiv"
+                title="Sperren nach Uhrzeit aktiv"
                 :buttons="[
                   { buttonValue: false, text: 'Nein' },
                   { buttonValue: true, text: 'Ja' },
@@ -411,9 +401,10 @@
                 @update:model-value="updateState(chargePointTemplateKey, $event, 'autolock.active')"
               >
                 <template #help>
-                  Wird die automatische Sperre aktiviert, können Fahrzeugladungen mittels Zeitplan auf gewünschte
+                  WirdSperren nach Uhrzeit aktiviert, können Fahrzeugladungen mittels Zeitplan auf gewünschte
                   Zeitbereiche eingeschränkt werden. Dies kann z.B. bei Zugänglichkeiten zu Ladepunkten in öffentlichen
-                  oder halb-öffentlichen Bereichen sinnvoll sein.
+                  oder halb-öffentlichen Bereichen sinnvoll sein. In dieser Zeit ist keine Freischaltung per RFID,
+                  Fahrzeugerkennung oder Pin möglich.
                 </template>
               </openwb-base-button-group-input>
               <openwb-base-button-group-input
@@ -426,177 +417,33 @@
                 @update:model-value="updateState(chargePointTemplateKey, $event, 'autolock.wait_for_charging_end')"
               >
                 <template #help>
-                  Wenn ein Zeitplan die automatische Sperre aktiviert, werden alle Ladepunkte direkt gesperrt und
-                  laufende Ladevorgänge beendet. Wird hier "Ja" ausgewählt, dann werden laufende Ladevorgänge NICHT
-                  beendet und diese Ladepunkte erst nach abgeschlossener Ladung gesperrt.
+                  Wenn ein Zeitplan Sperren nach Uhrzeit aktiviert, werden alle Ladepunkte direkt gesperrt und laufende
+                  Ladevorgänge beendet. Wird hier "Ja" ausgewählt, dann werden laufende Ladevorgänge NICHT beendet und
+                  diese Ladepunkte erst nach abgeschlossener Ladung gesperrt.
                 </template>
               </openwb-base-button-group-input>
 
               <openwb-base-heading>
-                Zeitpläne für die automatische Sperre
+                Zeitpläne für Sperren nach Uhrzeit
                 <template #actions>
                   <openwb-base-avatar
                     class="bg-success clickable"
-                    @click="addChargePointTemplateAutolockPlan(chargePointTemplateKey, $event)"
+                    title="Neuen Autolock Zeitplan anlegen"
+                    @click.stop="addChargePointTemplateAutolockPlan(chargePointTemplateKey)"
                   >
-                    <font-awesome-icon
-                      fixed-width
-                      :icon="['fas', 'plus']"
-                    />
+                    <font-awesome-icon :icon="['fas', 'plus']" />
                   </openwb-base-avatar>
                 </template>
               </openwb-base-heading>
             </div>
-            <openwb-base-card
-              v-for="(autolockPlan, autolockPlanKey) in getChargePointTemplateAutolockPlans(chargePointTemplateKey)"
-              :key="autolockPlanKey"
-              :title="autolockPlan.name"
-              :collapsible="true"
-              :collapsed="true"
-            >
-              <template #actions="slotProps">
-                <span
-                  v-if="slotProps.collapsed == true"
-                  class="subheader pill clickable"
-                  :class="autolockPlan.active ? 'bg-success' : 'bg-danger'"
-                  @click.stop="updateState(autolockPlanKey, !autolockPlan.active, 'active')"
-                >
-                  <font-awesome-icon
-                    fixed-width
-                    :icon="['fas', 'clock']"
-                  />
-                  {{ autolockPlan.time[0] }} -
-                  {{ autolockPlan.time[1] }}
-                  <span v-if="autolockPlan.frequency.selected == 'once'">
-                    <font-awesome-icon
-                      fixed-width
-                      :icon="['fas', 'calendar-day']"
-                    />
-                    {{
-                      formatDate(autolockPlan.frequency.once[0]) == formatDate(autolockPlan.frequency.once[1])
-                        ? formatDate(autolockPlan.frequency.once[0])
-                        : formatDate(autolockPlan.frequency.once[0]) +
-                          " - " +
-                          formatDate(autolockPlan.frequency.once[1])
-                    }}
-                  </span>
-                  <span v-if="autolockPlan.frequency.selected == 'daily'">
-                    <font-awesome-icon
-                      fixed-width
-                      :icon="['fas', 'calendar-week']"
-                    />
-                  </span>
-                  <span v-if="autolockPlan.frequency.selected == 'weekly'">
-                    <font-awesome-icon
-                      fixed-width
-                      :icon="['fas', 'calendar-alt']"
-                    />
-                  </span>
-                </span>
-                <openwb-base-avatar
-                  v-if="slotProps.collapsed == false"
-                  class="bg-danger clickable"
-                  @click="removeChargePointTemplateAutolockPlanModal(chargePointTemplateKey, autolockPlanKey, $event)"
-                >
-                  <font-awesome-icon
-                    fixed-width
-                    :icon="['fas', 'trash']"
-                  />
-                </openwb-base-avatar>
-              </template>
-              <openwb-base-text-input
-                title="Bezeichnung"
-                :model-value="autolockPlan.name"
-                @update:model-value="updateState(autolockPlanKey, $event, 'name')"
-              />
-              <openwb-base-button-group-input
-                title="Zeitplan aktiv"
-                :buttons="[
-                  {
-                    buttonValue: false,
-                    text: 'Nein',
-                    class: 'btn-outline-danger',
-                  },
-                  {
-                    buttonValue: true,
-                    text: 'Ja',
-                    class: 'btn-outline-success',
-                  },
-                ]"
-                :model-value="autolockPlan.active"
-                @update:model-value="updateState(autolockPlanKey, $event, 'active')"
-              />
-              <openwb-base-text-input
-                title="Sperren um"
-                subtype="time"
-                :model-value="autolockPlan.time[0]"
-                @update:model-value="updateState(autolockPlanKey, $event, 'time.0')"
-              />
-              <openwb-base-text-input
-                title="Freigeben um"
-                subtype="time"
-                :model-value="autolockPlan.time[1]"
-                @update:model-value="updateState(autolockPlanKey, $event, 'time.1')"
-              />
-              <openwb-base-button-group-input
-                title="Wiederholungen"
-                :buttons="[
-                  {
-                    buttonValue: 'once',
-                    text: 'Einmalig',
-                    class: 'btn-outline-info',
-                  },
-                  {
-                    buttonValue: 'daily',
-                    text: 'Täglich',
-                    class: 'btn-outline-info',
-                  },
-                  {
-                    buttonValue: 'weekly',
-                    text: 'Wöchentlich',
-                    class: 'btn-outline-info',
-                  },
-                ]"
-                :model-value="autolockPlan.frequency.selected"
-                @update:model-value="updateState(autolockPlanKey, $event, 'frequency.selected')"
-              />
-              <openwb-base-text-input
-                v-if="autolockPlan.frequency.selected == 'once'"
-                title="Sperren ab ..."
-                subtype="date"
-                :model-value="autolockPlan.frequency.once[0]"
-                @update:model-value="updateState(autolockPlanKey, $event, 'frequency.once.0')"
-              />
-              <openwb-base-text-input
-                v-if="autolockPlan.frequency.selected == 'once'"
-                title="... bis"
-                subtype="date"
-                :min="autolockPlan.frequency.once[0]"
-                :model-value="autolockPlan.frequency.once[1]"
-                @update:model-value="updateState(autolockPlanKey, $event, 'frequency.once.1')"
-              />
-              <div v-if="autolockPlan.frequency.selected == 'weekly'">
-                <openwb-base-button-group-input
-                  v-for="(day, dayIndex) in weekdays"
-                  :key="dayIndex"
-                  :title="day"
-                  :buttons="[
-                    {
-                      buttonValue: false,
-                      text: 'Aus',
-                      class: 'btn-outline-danger',
-                    },
-                    {
-                      buttonValue: true,
-                      text: 'An',
-                      class: 'btn-outline-success',
-                    },
-                  ]"
-                  :model-value="autolockPlan.frequency.weekly[dayIndex]"
-                  @update:model-value="updateState(autolockPlanKey, $event, 'frequency.weekly.' + dayIndex)"
-                />
-              </div>
-            </openwb-base-card>
+            <template-auto-lock-plan
+              v-for="(plan, planKey) in chargePointTemplate.autolock.plans"
+              :key="planKey"
+              :model-value="plan"
+              :template-id="chargePointTemplate.id"
+              @update:model-value="updateState(chargePointTemplateKey, $event, `autolock.plans.${planKey}`)"
+              @send-command="$emit('sendCommand', $event)"
+            />
           </openwb-base-card>
         </div>
       </openwb-base-card>
@@ -616,6 +463,7 @@ import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faPlus as fasPlus,
   faTrash as fasTrash,
+  faCopy as fasCopy,
   faCalendarDay as fasCalendarDay,
   faCalendarAlt as fasCalendarAlt,
   faCalendarWeek as fasCalendarWeek,
@@ -624,10 +472,11 @@ import {
 import { faFile as farFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, FontAwesomeLayers } from "@fortawesome/vue-fontawesome";
 
-library.add(fasPlus, fasTrash, fasCalendarDay, fasCalendarAlt, fasCalendarWeek, fasChargingStation, farFile);
+library.add(fasPlus, fasTrash, fasCopy, fasCalendarDay, fasCalendarAlt, fasCalendarWeek, fasChargingStation, farFile);
 
 import ComponentState from "../components/mixins/ComponentState.vue";
 import OpenwbChargePointProxy from "../components/charge_points/OpenwbChargePointProxy.vue";
+import TemplateAutoLockPlan from "../components/charge_points/TemplateAutoLockPlan.vue";
 
 export default {
   name: "OpenwbChargePointInstallationView",
@@ -635,6 +484,7 @@ export default {
     FontAwesomeIcon,
     FontAwesomeLayers,
     OpenwbChargePointProxy,
+    TemplateAutoLockPlan,
   },
   mixins: [ComponentState],
   props: {
@@ -654,7 +504,6 @@ export default {
         "openWB/optional/rfid/active",
         "openWB/chargepoint/+/config",
         "openWB/chargepoint/template/+",
-        "openWB/chargepoint/template/+/autolock/+",
         "openWB/system/configurable/chargepoints",
         "openWB/system/configurable/chargepoints_internal",
       ],
@@ -663,8 +512,6 @@ export default {
       modalChargePointIndex: undefined,
       showChargePointTemplateModal: false,
       modalChargePointTemplateIndex: undefined,
-      showChargePointTemplateAutolockPlanModal: false,
-      modalChargePointTemplateAutolockPlanIndex: undefined,
     };
   },
   computed: {
@@ -679,17 +526,21 @@ export default {
         let chargePoints = this.getWildcardTopics("openWB/chargepoint/+/config");
         let myObj = {};
         for (const [key, element] of Object.entries(chargePoints)) {
-          if (element.type === "internal_openwb" || this.$store.state.mqtt["openWB/general/extern"] === false) {
+          if (
+            (element && typeof element === "object" && element.type === "internal_openwb") ||
+            this.$store.state.mqtt["openWB/general/extern"] === false
+          ) {
             myObj[key] = element;
           }
         }
         return myObj;
       },
     },
-    chargePointTemplates: {
-      get() {
-        return this.getWildcardTopics("openWB/chargepoint/template/+");
-      },
+    chargePointTemplates() {
+      const chargePointTemplates = this.getWildcardTopics("openWB/chargepoint/template/+");
+      return Object.fromEntries(
+        Object.entries(chargePointTemplates).filter(([, template]) => template && typeof template === "object"),
+      );
     },
     chargePointTemplateList: {
       get() {
@@ -710,16 +561,15 @@ export default {
         data: { type: this.chargePointToAdd },
       });
     },
-    removeChargePointModal(chargePoint, event) {
+    removeChargePointModal(event, chargePoint) {
       // prevent further processing of the click event
       event.stopPropagation();
       this.modalChargePointIndex = parseInt(chargePoint.match(/(?:\/)(\d+)(?=\/)/)[1]);
       this.showChargePointModal = true;
     },
-    removeChargePoint(chargePointIndex, event) {
+    removeChargePoint(event, chargePointIndex) {
       this.showChargePointModal = false;
       if (event == "confirm") {
-        console.debug("request removal of charge point '" + chargePointIndex + "'");
         this.$emit("sendCommand", {
           command: "removeChargepoint",
           data: { id: chargePointIndex },
@@ -738,84 +588,50 @@ export default {
         ? this.$store.state.mqtt["openWB/chargepoint/" + chargePointIndex + "/config"].name
         : "Ladepunkt " + chargePointIndex;
     },
+    getChargePointTemplateIndex(chargePointTemplate) {
+      // get trailing characters as index
+      return parseInt(chargePointTemplate.match(/([^/]+)$/)[0]);
+    },
     getChargePointTemplateName(chargePointTemplateIndex) {
       return this.$store.state.mqtt["openWB/chargepoint/template/" + chargePointTemplateIndex]
         ? this.$store.state.mqtt["openWB/chargepoint/template/" + chargePointTemplateIndex].name
         : "Profil " + chargePointTemplateIndex;
     },
-    addChargePointTemplate(event) {
+    addChargePointTemplate(event, keyToCopy) {
       // prevent further processing of the click event
       event.stopPropagation();
+      let data = {};
+      // if keyToCopy is defined, parse the index and update data.copy
+      if (keyToCopy) {
+        data.copy = this.getChargePointTemplateIndex(keyToCopy);
+      }
+      // emit the command to add a new charge point template
       this.$emit("sendCommand", {
         command: "addChargepointTemplate",
-        data: {},
+        data: data,
       });
     },
-    getChargePointTemplateIndex(chargePointTemplate) {
-      // get trailing characters as index
-      return parseInt(chargePointTemplate.match(/([^/]+)$/)[0]);
-    },
-    removeChargePointTemplateModal(chargePointTemplate, event) {
+    removeChargePointTemplateModal(event, chargePointTemplate) {
       // prevent further processing of the click event
       event.stopPropagation();
       this.modalChargePointTemplateIndex = this.getChargePointTemplateIndex(chargePointTemplate);
       this.showChargePointTemplateModal = true;
     },
-    removeChargePointTemplate(chargePointTemplateIndex, event) {
+    removeChargePointTemplate(event, chargePointTemplateIndex) {
       this.showChargePointTemplateModal = false;
       if (event == "confirm") {
-        console.debug("request removal of chargePoint template '" + chargePointTemplateIndex + "'");
         this.$emit("sendCommand", {
           command: "removeChargepointTemplate",
           data: { id: chargePointTemplateIndex },
         });
       }
     },
-    addChargePointTemplateAutolockPlan(chargePointTemplate, event) {
-      // prevent further processing of the click event
-      event.stopPropagation();
-      console.info("requesting new charge point template autolock plan...");
-      let chargePointTemplateIndex = this.getChargePointTemplateIndex(chargePointTemplate);
+    addChargePointTemplateAutolockPlan(chargePointTemplate) {
+      // emit the command to add a new autolock plan for the charge point template
       this.$emit("sendCommand", {
         command: "addAutolockPlan",
-        data: { template: chargePointTemplateIndex },
+        data: { template: this.getChargePointTemplateIndex(chargePointTemplate) },
       });
-    },
-    removeChargePointTemplateAutolockPlanModal(chargePointTemplate, autolockPlan, event) {
-      // prevent further processing of the click event
-      event.stopPropagation();
-      this.modalChargePointTemplateIndex = this.getChargePointTemplateIndex(chargePointTemplate);
-      this.modalChargePointTemplateAutolockPlanIndex = parseInt(autolockPlan.match(/([^/]+)$/)[0]);
-      this.showChargePointTemplateAutolockPlanModal = true;
-    },
-    removeChargePointTemplateAutolockPlan(chargePointTemplateIndex, autolockPlanIndex, event) {
-      this.showChargePointTemplateAutolockPlanModal = false;
-      if (event == "confirm") {
-        console.debug(
-          "request removal of chargePoint template '" +
-            chargePointTemplateIndex +
-            "' autolock plan '" +
-            autolockPlanIndex +
-            "'",
-        );
-        this.$emit("sendCommand", {
-          command: "removeAutolockPlan",
-          data: {
-            template: chargePointTemplateIndex,
-            plan: autolockPlanIndex,
-          },
-        });
-      }
-    },
-    getChargePointTemplateAutolockPlanName(templateIndex, planIndex) {
-      return this.$store.state.mqtt["openWB/chargepoint/template/" + templateIndex + "/autolock/" + planIndex]
-        ? this.$store.state.mqtt["openWB/chargepoint/template/" + templateIndex + "/autolock/" + planIndex].name
-        : "Autolock Zeitplan " + templateIndex + "/" + planIndex;
-    },
-    getChargePointTemplateAutolockPlans(chargePointTemplate) {
-      let chargePointTemplateIndex = this.getChargePointTemplateIndex(chargePointTemplate);
-      let result = this.getWildcardTopics("openWB/chargepoint/template/" + chargePointTemplateIndex + "/autolock/+");
-      return result;
     },
     updateConfiguration(key, event) {
       console.debug("updateConfiguration", key, event);

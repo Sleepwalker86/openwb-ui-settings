@@ -15,13 +15,11 @@
       <div class="input-group">
         <div class="input-group-prepend">
           <div class="input-group-text">
-            <font-awesome-icon
-              fixed-width
-              :icon="['fas', 'calculator']"
-            />
+            <font-awesome-icon :icon="['fas', 'calculator']" />
           </div>
         </div>
         <input
+          :id="`${uid}-number-input`"
           v-model.number="value"
           type="number"
           class="form-control"
@@ -35,6 +33,14 @@
             {{ unit }}
           </div>
         </div>
+        <div
+          v-if="$slots.append"
+          class="input-group-append"
+        >
+          <div class="input-group-text p-0">
+            <slot name="append" />
+          </div>
+        </div>
       </div>
     </template>
   </openwb-base-setting-element>
@@ -42,6 +48,7 @@
 
 <script>
 import OpenwbBaseSettingElement from "./OpenwbBaseSettingElement.vue";
+import BaseSettingComponents from "./mixins/BaseSettingComponents.vue";
 
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faCalculator as fasCalculator } from "@fortawesome/free-solid-svg-icons";
@@ -55,6 +62,7 @@ export default {
     FontAwesomeIcon,
     OpenwbBaseSettingElement,
   },
+  mixins: [BaseSettingComponents],
   inheritAttrs: false,
   props: {
     title: { type: String, required: false, default: "" },

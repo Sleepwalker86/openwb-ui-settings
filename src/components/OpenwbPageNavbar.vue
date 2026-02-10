@@ -86,7 +86,14 @@
               class="dropdown-item"
               active-class="active disabled"
             >
-              Optionale Hardware
+              Display
+            </router-link>
+            <router-link
+              to="/IdentificationConfig"
+              class="dropdown-item"
+              active-class="active disabled"
+            >
+              Identifikation
             </router-link>
           </div>
         </li>
@@ -112,32 +119,18 @@
               Übergreifendes
             </router-link>
             <router-link
-              to="/InstantChargeConfig"
+              to="/SurplusChargeConfig"
               class="dropdown-item"
               active-class="active disabled"
             >
-              Sofortladen
+              Überschuss-Laden
             </router-link>
             <router-link
-              to="/PVChargeConfig"
+              to="/ActiveBatControl"
               class="dropdown-item"
               active-class="active disabled"
             >
-              PV-Laden
-            </router-link>
-            <router-link
-              to="/TimeChargeConfig"
-              class="dropdown-item"
-              active-class="active disabled"
-            >
-              Zeitladen
-            </router-link>
-            <router-link
-              to="/ScheduledChargeConfig"
-              class="dropdown-item"
-              active-class="active disabled"
-            >
-              Zielladen
+              Speichersteuerung
             </router-link>
           </div>
         </li>
@@ -182,6 +175,13 @@
               active-class="active disabled"
             >
               Fahrzeuge
+            </router-link>
+            <router-link
+              to="/IoConfiguration"
+              class="dropdown-item"
+              active-class="active disabled"
+            >
+              Ein-/Ausgänge
             </router-link>
             <div class="dropdown-divider" />
             <a
@@ -291,14 +291,11 @@
         <li class="nav-item nav-separator-before">
           <a
             class="nav-link"
-            href="https://github.com/openWB/core/wiki"
+            href="https://wiki.openwb.de/"
             target="_blank"
           >
             Wiki
-            <font-awesome-icon
-              fixed-width
-              :icon="['fas', 'external-link-alt']"
-            />
+            <font-awesome-icon :icon="['fas', 'external-link-alt']" />
           </a>
         </li>
       </ul>
@@ -335,6 +332,10 @@ export default {
 </script>
 
 <style scoped>
+.navbar {
+  box-shadow: 0 4px 8px 4px rgba(0, 0, 0, 0.15);
+}
+
 .nav-item.nav-separator-before {
   border-left: 1px solid rgba(255, 255, 255, 0.5);
   margin-left: 5px;

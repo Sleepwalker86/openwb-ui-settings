@@ -1,68 +1,6 @@
 <template>
   <div class="optionalComponents">
     <form name="optionalComponentsForm">
-      <openwb-base-card title="Identifikation">
-        <div v-if="$store.state.mqtt['openWB/general/extern'] === true">
-          <openwb-base-alert subtype="info">
-            Weitere Einstellungen sind nicht verfügbar, solange sich diese openWB im Steuerungsmodus "secondary"
-            befindet.
-          </openwb-base-alert>
-        </div>
-        <div v-else>
-          <openwb-base-button-group-input
-            title="Identifikation aktivieren"
-            :model-value="$store.state.mqtt['openWB/optional/rfid/active']"
-            :buttons="[
-              {
-                buttonValue: false,
-                text: 'Aus',
-                class: 'btn-outline-danger',
-              },
-              {
-                buttonValue: true,
-                text: 'An',
-                class: 'btn-outline-success',
-              },
-            ]"
-            @update:model-value="updateState('openWB/optional/rfid/active', $event)"
-          >
-            <template #help>
-              Die Identifikation kann zum Entsperren von Ladepunkten und/oder zur Zuordnung von Fahrzeugen genutzt
-              werden und kann auf mehreren Wegen erfolgen:
-              <ul>
-                <li>
-                  Über einen in der openWB verbauten RFID-Reader (optional, z.B. anhand des Lieferscheins prüfen).
-                </li>
-                <li>
-                  Durch die automatische Erkennung an einer openWB Pro (muss in den Einstellungen aktiviert werden).
-                </li>
-                <li>Durch manuelle Eingabe einer ID am Display einer openWB.</li>
-              </ul>
-            </template>
-          </openwb-base-button-group-input>
-          <div v-if="$store.state.mqtt['openWB/optional/rfid/active'] === true">
-            <openwb-base-alert
-              subtype="info"
-              class="mb-1"
-            >
-              Die ID-Tags müssen in den Einstellungen der Fahrzeuge diesen zugeordnet werden.<br />
-              Es kann zuerst das Fahrzeug angesteckt und dann der ID-Tag erfasst werden oder andersherum. Im letzten
-              Fall muss innerhalb von 5 Minuten ein Fahrzeug angesteckt werden, sonst wird der ID-Tag verworfen.<br />
-              <span v-html="$store.state.text.rfidWiki" />
-            </openwb-base-alert>
-            <openwb-base-textarea
-              title="Erkannte ID-Tags"
-              readonly
-              disabled
-              :model-value="idTagList.join('\n')"
-            >
-              <template #help>
-                Solange diese Seite geöffnet ist, werden alle erfassten ID-Tags in dieser Liste aufgeführt.
-              </template>
-            </openwb-base-textarea>
-          </div>
-        </div>
-      </openwb-base-card>
       <openwb-base-card title="Display (intern oder extern)">
         <openwb-base-button-group-input
           title="Integriertes Display"
@@ -130,10 +68,6 @@
             unit="Sek"
             :labels="[
               {
-                label: 'Immer an',
-                value: 0,
-              },
-              {
                 label: 5,
                 value: 5,
               },
@@ -181,6 +115,10 @@
                 label: '10 Min',
                 value: 600,
               },
+              {
+                label: 'Immer an',
+                value: 0,
+              },
             ]"
             @update:model-value="updateState('openWB/optional/int_display/standby', $event)"
           >
@@ -199,7 +137,7 @@
         <div v-else>
           <hr />
           <openwb-base-button-group-input
-            title="Ladepunkte auf externen openWB"
+            title="Ladepunkte auf secondary openWB"
             :model-value="$store.state.mqtt['openWB/optional/int_display/only_local_charge_points']"
             :buttons="[
               {
@@ -216,7 +154,7 @@
             @update:model-value="updateState('openWB/optional/int_display/only_local_charge_points', $event)"
           >
             <template #help>
-              Hiermit kann festgelegt werden, ob an angebundenen externen openWB alle oder nur die jeweils lokalen
+              Hiermit kann festgelegt werden, ob an angebundenen secondary openWB alle oder nur die jeweils lokalen
               Ladepunkte angezeigt werden sollen.
             </template>
           </openwb-base-button-group-input>
@@ -265,11 +203,6 @@ export default {
     return {
       mqttTopicsToSubscribe: [
         "openWB/general/extern",
-        "openWB/chargepoint/+/config",
-        "openWB/chargepoint/+/get/rfid",
-        "openWB/chargepoint/+/get/rfid_timestamp",
-        "openWB/chargepoint/+/set/rfid",
-        "openWB/optional/rfid/active",
         "openWB/optional/led/active",
         "ToDo/optional/led/instant_blocked",
         "ToDo/optional/led/pv_blocked",
@@ -282,25 +215,19 @@ export default {
         "ToDo/optional/led/standby",
         "ToDo/optional/led/stop",
         "openWB/optional/int_display/active",
-        "openWB/optional/int_display/standby",
-        "openWB/optional/int_display/rotation",
         "openWB/optional/int_display/on_if_plugged_in",
+        "openWB/optional/int_display/only_local_charge_points",
         "openWB/optional/int_display/pin_active",
         "openWB/optional/int_display/pin_code",
+        "openWB/optional/int_display/rotation",
+        "openWB/optional/int_display/standby",
         "openWB/optional/int_display/theme",
-        "openWB/optional/int_display/only_local_charge_points",
+        "openWB/optional/rfid/active",
         "openWB/system/configurable/display_themes",
-        "openWB/optional/et/active",
-        "openWB/optional/et/config/provider",
-        "openWB/optional/et/config/max_price",
       ],
-      tempIdTagList: {},
     };
   },
   computed: {
-    idTagList() {
-      return Object.values(this.updateIdTagList());
-    },
     displayThemeList() {
       return this.$store.state.mqtt["openWB/system/configurable/display_themes"];
     },
@@ -309,7 +236,7 @@ export default {
         { label: "openWB", options: [] },
         { label: "Community", options: [] },
       ];
-      this.displayThemeList.forEach((theme) => {
+      this.displayThemeList?.forEach((theme) => {
         if (theme.official === true) {
           groups[0].options.push(theme);
         } else {
@@ -320,27 +247,6 @@ export default {
     },
   },
   methods: {
-    getIdFromTopic(topic) {
-      return topic.match(/(?:\/)([0-9]+)(?=\/)*/g)[0].replace(/[^0-9]+/g, "");
-    },
-    updateIdTagList() {
-      Object.entries(
-        // get all id-tag topics/values
-        this.getWildcardTopics("^openWB/chargepoint/[^+/]+/[gs]et/rfid$", true),
-      ).forEach((entry) => {
-        if (entry[1] !== null) {
-          this.tempIdTagList[entry[1]] = `${entry[1]} (${
-            entry[0].includes("/set/") ? "zugewiesen" : "erfasst"
-          } an ${this.getChargePointName(this.getIdFromTopic(entry[0]))})`;
-        }
-      });
-      return this.tempIdTagList;
-    },
-    getChargePointName(chargePointIndex) {
-      return this.$store.state.mqtt["openWB/chargepoint/" + chargePointIndex + "/config"]
-        ? this.$store.state.mqtt["openWB/chargepoint/" + chargePointIndex + "/config"].name
-        : "Ladepunkt " + chargePointIndex;
-    },
     getDisplayThemeDefaults(displayThemeType) {
       const displayThemeDefaults = this.displayThemeList.find((element) => element.value == displayThemeType);
       if (Object.prototype.hasOwnProperty.call(displayThemeDefaults, "defaults")) {

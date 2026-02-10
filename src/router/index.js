@@ -39,10 +39,18 @@ const routes = [
     component: () => import("../views/GeneralConfig.vue"),
   },
   {
+    path: "/IdentificationConfig",
+    name: "IdentificationConfig",
+    meta: {
+      heading: "Einstellungen - Identifikation",
+    },
+    component: () => import("../views/IdentificationConfig.vue"),
+  },
+  {
     path: "/OptionalComponents",
     name: "OptionalComponents",
     meta: {
-      heading: "Einstellungen - Optionale Hardware",
+      heading: "Einstellungen - Display",
     },
     component: () => import("../views/OptionalComponents.vue"),
   },
@@ -55,36 +63,20 @@ const routes = [
     component: () => import("../views/GeneralChargeConfig.vue"),
   },
   {
-    path: "/InstantChargeConfig",
-    name: "InstantChargeConfig",
+    path: "/SurplusChargeConfig",
+    name: "SurplusChargeConfig",
     meta: {
-      heading: "Ladeeinstellungen - Sofortladen",
+      heading: "Ladeeinstellungen - Überschuss-Laden",
     },
-    component: () => import("../views/InstantChargeConfig.vue"),
+    component: () => import("../views/SurplusChargeConfig.vue"),
   },
   {
-    path: "/PVChargeConfig",
-    name: "PVChargeConfig",
+    path: "/ActiveBatControl",
+    name: "ActiveBatControl",
     meta: {
-      heading: "Ladeeinstellungen - PV-Laden",
+      heading: "Ladeeinstellungen - Speichersteuerung",
     },
-    component: () => import("../views/PVChargeConfig.vue"),
-  },
-  {
-    path: "/TimeChargeConfig",
-    name: "TimeChargeConfig",
-    meta: {
-      heading: "Ladeeinstellungen - Zeitladen",
-    },
-    component: () => import("../views/TimeChargeConfig.vue"),
-  },
-  {
-    path: "/ScheduledChargeConfig",
-    name: "ScheduledChargeConfig",
-    meta: {
-      heading: "Ladeeinstellungen - Zielladen",
-    },
-    component: () => import("../views/ScheduledChargeConfig.vue"),
+    component: () => import("../views/ActiveBatControl.vue"),
   },
   {
     path: "/HardwareInstallation",
@@ -117,6 +109,14 @@ const routes = [
       heading: "Konfiguration - Fahrzeuge",
     },
     component: () => import("../views/VehicleConfig.vue"),
+  },
+  {
+    path: "/IoConfiguration",
+    name: "IoConfiguration",
+    meta: {
+      heading: "Konfiguration - Ein- und Ausgänge",
+    },
+    component: () => import("../views/IoConfig.vue"),
   },
   {
     path: "/System/CloudConfiguration",

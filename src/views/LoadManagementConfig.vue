@@ -12,6 +12,13 @@
           </openwb-base-alert>
         </div>
         <div v-else>
+          <openwb-base-alert
+            v-if="!installAssistantActive"
+            subtype="info"
+          >
+            Die Konfiguration für die externe Steuerung durch den Netzbetreiber (RSE, EMS, §14a) erfolgt in den
+            <router-link to="/IoConfiguration">Einstellungen der Ein-/Ausgänge</router-link> im Bereich der Aktionen.
+          </openwb-base-alert>
           <openwb-base-button-group-input
             title="Fahrzeuge, die nicht mit Sollstrom laden"
             :buttons="[
@@ -87,10 +94,7 @@
             subtype="danger"
           >
             <template #header>
-              <font-awesome-icon
-                fixed-width
-                :icon="['fas', 'gauge-high']"
-              />
+              <font-awesome-icon :icon="['fas', 'gauge-high']" />
               {{ counter.name }}
             </template>
             <openwb-base-number-input
@@ -108,7 +112,7 @@
             </openwb-base-number-input>
             <openwb-base-number-input
               title="Maximaler Strom L1"
-              :min="16"
+              :min="6"
               :step="1"
               unit="A"
               required
@@ -119,7 +123,7 @@
             </openwb-base-number-input>
             <openwb-base-number-input
               title="Maximaler Strom L2"
-              :min="16"
+              :min="6"
               :step="1"
               unit="A"
               required
@@ -130,7 +134,7 @@
             </openwb-base-number-input>
             <openwb-base-number-input
               title="Maximaler Strom L3"
-              :min="16"
+              :min="6"
               :step="1"
               unit="A"
               required
@@ -163,10 +167,7 @@
             subtype="success"
           >
             <template #header>
-              <font-awesome-icon
-                fixed-width
-                :icon="['fas', 'solar-panel']"
-              />
+              <font-awesome-icon :icon="['fas', 'solar-panel']" />
               {{ inverter.name }}
             </template>
             <openwb-base-number-input
@@ -178,7 +179,7 @@
               :model-value="$store.state.mqtt['openWB/pv/' + inverter.id + '/config/max_ac_out'] / 1000"
               @update:model-value="updateState('openWB/pv/' + inverter.id + '/config/max_ac_out', $event * 1000)"
             >
-              <template #help> Relevant bei Hybrid-Systemen mit DC-Speicher. </template>
+              <template #help> Bei 0 kW erfolgt keine Berücksichtigung der maximalen Ausgangsleistung. </template>
             </openwb-base-number-input>
           </openwb-base-card>
         </div>

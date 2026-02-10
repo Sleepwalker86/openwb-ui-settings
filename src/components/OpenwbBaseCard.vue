@@ -4,6 +4,7 @@
     :class="'border-' + subtype"
   >
     <div
+      v-if="title !== undefined || $slots.header"
       class="card-header py-1"
       :class="'bg-' + subtype"
       @click="toggleBody"
@@ -20,26 +21,30 @@
           </div>
         </div>
       </div>
-      <span class="card-actions ml-4">
-        <span
+      <div class="card-actions ml-4">
+        <div
           v-if="$slots.actions"
-          class="card-actions mr-4"
+          class="card-actions mr-2"
         >
           <slot
             name="actions"
             :collapsed="isCollapsed"
           />
-        </span>
+        </div>
         <font-awesome-icon
           v-if="collapsible"
-          fixed-width
           :icon="isCollapsed ? ['fas', 'chevron-right'] : ['fas', 'chevron-down']"
         />
-      </span>
+      </div>
     </div>
     <div
       v-if="isCollapsed === false"
       class="card-body"
+      :class="[
+        title == undefined && !$slots.header ? 'border-radius-top-inherit' : '',
+        $slots.footer ? '' : 'border-radius-bottom-inherit',
+        'bg-' + bodyBg,
+      ]"
       v-bind="$attrs"
     >
       <slot />
@@ -67,37 +72,56 @@ export default {
   },
   inheritAttrs: false,
   props: {
-    title: { type: String, default: "# no title set #" },
+    title: { type: String, default: undefined },
     subtype: {
       validator: function (value) {
         return (
-          ["info", "success", "warning", "danger", "primary", "secondary", "light", "dark", "pink"].indexOf(value) !==
-          -1
+          ["info", "success", "warning", "danger", "primary", "secondary", "light", "dark", "pink", "white"].indexOf(
+            value,
+          ) !== -1
         );
       },
       default: "secondary",
     },
+    bodyBg: {
+      validator: function (value) {
+        return (
+          ["info", "success", "warning", "danger", "primary", "secondary", "light", "dark", "pink", "white"].indexOf(
+            value,
+          ) !== -1
+        );
+      },
+      default: "light",
+    },
     collapsible: { type: Boolean, default: false },
     collapsed: { type: Boolean, default: false },
   },
+  emits: ["collapsed", "expanded"],
   data() {
     return {
       isCollapsed: this.collapsible && this.collapsed,
     };
   },
+
   methods: {
     toggleBody() {
       if (this.collapsible === true) {
         this.isCollapsed = !this.isCollapsed;
+        this.$emit(this.isCollapsed ? "collapsed" : "expanded");
       }
     },
   },
 };
 </script>
 
-<style>
+<style scoped>
 .card {
   margin-bottom: 1rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card :deep(.card:last-of-type) {
+  margin-bottom: 0;
 }
 
 .card .card-header {
@@ -105,46 +129,25 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: none;
 }
 
-.card .card-header .subheader {
+.card-header > .card-actions > .card-actions {
+  font-size: 90%;
   font-weight: normal;
-  font-size: 75%;
 }
 
 .card-actions {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
 }
 
-.card-actions .pill {
+.card-actions :deep(.pill) {
   border-radius: 10px;
   padding: 5px;
   border-width: 2px;
   border-style: solid;
-}
-
-.border-pink {
-  border-color: var(--pink) !important;
-}
-
-.bg-pink {
-  background-color: var(--pink) !important;
-}
-
-.bg-primary,
-.bg-secondary,
-.bg-info,
-.bg-danger,
-.bg-success,
-.bg-dark {
-  color: white;
-}
-
-.bg-warning,
-.bg-pink,
-.bg-light {
-  color: #212529;
 }
 
 .card-header.bg-secondary .btn-outline-info:not(.active):not(:hover),
@@ -160,5 +163,23 @@ export default {
 .card-header.bg-success .btn-outline-info.active,
 .card-header.bg-success .btn-outline-info:hover {
   border-color: white;
+}
+
+.card.border-white {
+  background-color: bg-border-white; /* Ensure this matches the background color of other elements */
+}
+
+.card-header :deep(.card.border-white) {
+  background-color: inherit; /* Change this to match the background color of the card body */
+}
+
+.card-body.border-radius-top-inherit {
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.card-body.border-radius-bottom-inherit {
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
 }
 </style>

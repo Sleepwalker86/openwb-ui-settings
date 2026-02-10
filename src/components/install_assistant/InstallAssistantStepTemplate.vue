@@ -2,6 +2,7 @@
   <div>
     <openwb-base-card
       :title="title"
+      body-bg="white"
       class="p-0 mx-3"
     >
       <template #footer>
@@ -14,10 +15,7 @@
               class="btn-block btn-warning"
               @button-clicked="previousPage()"
             >
-              <font-awesome-icon
-                fixed-width
-                :icon="['fas', 'caret-left']"
-              />
+              <font-awesome-icon :icon="['fas', 'caret-left']" />
               Zurück
             </openwb-base-click-button>
           </div>
@@ -30,10 +28,7 @@
               @button-clicked="nextPage()"
             >
               Weiter
-              <font-awesome-icon
-                fixed-width
-                :icon="['fas', 'caret-right']"
-              />
+              <font-awesome-icon :icon="['fas', 'caret-right']" />
             </openwb-base-click-button>
           </div>
           <div
@@ -132,15 +127,15 @@ export default {
 
 <style scoped>
 .page-help-text {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-  background-color: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid rgb(0, 0, 0);
+  background-color: var(--light);
 }
 
 @media screen and (min-width: 768px) {
   .page-help-text {
     border-right: 1px solid rgba(0, 0, 0, 0.125);
     border-bottom: none;
-    background-color: rgba(0, 0, 0, 0.03);
+    background-color: var(--light);
   }
 }
 </style>

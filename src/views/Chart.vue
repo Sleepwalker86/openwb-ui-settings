@@ -1,35 +1,43 @@
 <template>
   <div class="chart">
-    <form name="chartForm">
+    <div v-if="$store.state.mqtt['openWB/general/extern'] === true">
+      <openwb-base-alert subtype="info">
+        Die Auswertungen sind nicht verfügbar, solange sich diese openWB im Steuerungsmodus "secondary" befindet. Du
+        findest alle Auswertungen in der openWB, welche sich im Steuerungsmodus "primary" befindet.
+      </openwb-base-alert>
+    </div>
+    <div v-else>
       <openwb-base-card
         title="Filter"
         :collapsible="true"
         :collapsed="false"
       >
-        <openwb-base-select-input
-          v-model="chartRange"
-          title="Zeitraum"
-          :options="[
-            { value: 'day', text: 'Tag' },
-            { value: 'month', text: 'Monat' },
-            { value: 'year', text: 'Jahr' },
-          ]"
-        />
-        <openwb-base-text-input
-          v-model="chartDate"
-          :title="dateInput.title"
-          :subtype="dateInput.type"
-          :min="dateInput.min"
-          :max="currentDate"
-          :show-quick-buttons="true"
-          @update:model-value="updateChart()"
-        />
+        <form name="chartFilterForm">
+          <openwb-base-select-input
+            v-model="chartRange"
+            title="Zeitraum"
+            :options="[
+              { value: 'day', text: 'Tag' },
+              { value: 'month', text: 'Monat' },
+              { value: 'year', text: 'Jahr' },
+            ]"
+          />
+          <openwb-base-text-input
+            v-model="chartDate"
+            :title="dateInput.title"
+            :subtype="dateInput.type"
+            :min="dateInput.min"
+            :max="currentDate"
+            :show-quick-buttons="true"
+            @update:model-value="updateChart()"
+          />
+        </form>
       </openwb-base-card>
       <openwb-base-alert
-        v-if="!chartDataRead"
+        v-if="chartIsLoading"
         subtype="info"
       >
-        Es wurden noch keine Daten abgerufen.
+        Daten werden geladen...
       </openwb-base-alert>
       <div v-else>
         <openwb-base-alert
@@ -43,6 +51,7 @@
             title="Diagramm"
             :collapsible="true"
             :collapsed="false"
+            @expanded="refreshLegend"
           >
             <div class="openwb-chart">
               <chartjs-line
@@ -52,27 +61,31 @@
                 @click="handleChartClick"
               />
             </div>
+            <ChartLegend
+              v-if="chartInstance"
+              :key="chartDatasets.datasets.length"
+              ref="chartLegend"
+              :range="chartRange"
+              :chart="getChartInstance()"
+            />
           </openwb-base-card>
           <openwb-base-card
             title="Summen"
             :collapsible="true"
             :collapsed="true"
           >
-            <div
-              v-for="(group, groupKey) in chartTotals"
-              :key="groupKey"
-            >
+            <form name="chartTotalsForm">
               <openwb-base-card
-                v-if="Object.keys(group).length > 0"
+                v-for="(group, groupKey) in Object.fromEntries(
+                  Object.entries(chartTotals).filter(([_, value]) => Object.keys(value).length > 0),
+                )"
+                :key="groupKey"
                 :collapsible="true"
                 :collapsed="true"
                 :subtype="getCardSubtype(groupKey)"
               >
                 <template #header>
-                  <font-awesome-icon
-                    fixed-width
-                    :icon="getCardIcon(groupKey)"
-                  />
+                  <font-awesome-icon :icon="getCardIcon(groupKey)" />
                   {{ getTotalsLabel(groupKey) }}
                 </template>
                 <div
@@ -97,11 +110,11 @@
                   <hr v-if="componentKey == 'all' && groupKey != 'hc'" />
                 </div>
               </openwb-base-card>
-            </div>
+            </form>
           </openwb-base-card>
         </div>
       </div>
-    </form>
+    </div>
   </div>
 </template>
 
@@ -151,10 +164,12 @@ Chart.register(
   Filler,
   ZoomPlugin,
 );
+import ChartLegend from "../components/chart/ChartLegend.vue";
+import { nextTick } from "vue";
 
 export default {
   name: "OpenwbChartView",
-  components: { ChartjsLine, FontAwesomeIcon },
+  components: { ChartjsLine, FontAwesomeIcon, ChartLegend },
   mixins: [ComponentState],
   props: {
     initialChartRange: {
@@ -177,6 +192,7 @@ export default {
   emits: ["sendCommand"],
   data() {
     return {
+      chartInstance: null,
       mqttTopicsToSubscribe: [
         "openWB/general/extern",
         "openWB/log/daily/#",
@@ -189,6 +205,7 @@ export default {
       currentDate: "",
       chartRange: "day",
       blockChartInit: false,
+      chartIsLoading: false,
       chartRequestDate: {
         day: "",
         month: "",
@@ -197,6 +214,7 @@ export default {
       datasetTemplates: {
         "counter-power_average": {
           label: "Zähler",
+          category: "component",
           unit: "kW",
           jsonKey: null,
           borderColor: "rgba(255, 0, 0, 0.7)",
@@ -217,6 +235,7 @@ export default {
         },
         "counter-energy_imported": {
           label: "Zähler",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(255, 0, 0, 0.7)",
@@ -237,6 +256,7 @@ export default {
         },
         "counter-energy_exported": {
           label: "Zähler",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(0, 255, 105, 0.7)",
@@ -255,8 +275,78 @@ export default {
             yAxisKey: null,
           },
         },
+        "counter-energy_imported_grid": {
+          label: "Zähler (Netzanteil)",
+          category: "component",
+          unit: "kWh",
+          type: "bar",
+          jsonKey: null,
+          borderColor: "rgba(255, 0, 0, 0.7)",
+          backgroundColor: "rgba(255, 10, 13, 0.3)",
+          fill: true,
+          pointStyle: "circle",
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          cubicInterpolationMode: "monotone",
+          hidden: true,
+          borderWidth: 3,
+          data: null,
+          yAxisID: "y2",
+          stack: "#-energy-imported-source",
+          parsing: {
+            xAxisKey: "timestamp",
+            yAxisKey: null,
+          },
+        },
+        "counter-energy_imported_pv": {
+          label: "Zähler (PV-Anteil)",
+          category: "component",
+          unit: "kWh",
+          type: "bar",
+          jsonKey: null,
+          borderColor: "rgba(40, 167, 69, 0.7)",
+          backgroundColor: "rgba(255, 10, 13, 0.3)",
+          fill: true,
+          pointStyle: "circle",
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          cubicInterpolationMode: "monotone",
+          hidden: true,
+          borderWidth: 3,
+          data: null,
+          yAxisID: "y2",
+          stack: "#-energy-imported-source",
+          parsing: {
+            xAxisKey: "timestamp",
+            yAxisKey: null,
+          },
+        },
+        "counter-energy_imported_bat": {
+          label: "Zähler (PV-Anteil)",
+          category: "component",
+          unit: "kWh",
+          type: "bar",
+          jsonKey: null,
+          borderColor: "rgba(253, 126, 20, 0.7)",
+          backgroundColor: "rgba(255, 10, 13, 0.3)",
+          fill: true,
+          pointStyle: "circle",
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          cubicInterpolationMode: "monotone",
+          hidden: true,
+          borderWidth: 3,
+          data: null,
+          yAxisID: "y2",
+          stack: "#-energy-imported-source",
+          parsing: {
+            xAxisKey: "timestamp",
+            yAxisKey: null,
+          },
+        },
         "pv-power_exported": {
           label: "PV",
+          category: "component",
           unit: "kW",
           jsonKey: null,
           borderColor: "rgba(40, 167, 69, 0.7)",
@@ -278,6 +368,7 @@ export default {
         },
         "pv-energy_exported": {
           label: "PV",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(40, 167, 69, 0.7)",
@@ -299,6 +390,7 @@ export default {
         },
         "bat-power_average": {
           label: "Speicher",
+          category: "component",
           unit: "kW",
           jsonKey: null,
           borderColor: "rgba(253, 126, 20, 0.7)",
@@ -320,6 +412,7 @@ export default {
         },
         "bat-energy_imported": {
           label: "Speicher",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(253, 126, 20, 0.7)",
@@ -341,6 +434,7 @@ export default {
         },
         "bat-energy_exported": {
           label: "Speicher",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(253, 126, 20, 0.7)",
@@ -362,6 +456,7 @@ export default {
         },
         "bat-soc": {
           label: "Speicher SoC",
+          category: "component",
           unit: "%",
           jsonKey: null,
           borderColor: "rgba(253, 126, 20, 0.7)",
@@ -383,6 +478,7 @@ export default {
         },
         "cp-power_average": {
           label: "Ladepunkt",
+          category: "chargepoint",
           unit: "kW",
           jsonKey: null,
           borderColor: "rgba(0, 0, 255, 0.7)",
@@ -404,6 +500,7 @@ export default {
         },
         "cp-energy_imported": {
           label: "Ladepunkt",
+          category: "chargepoint",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(0, 0, 255, 0.7)",
@@ -425,6 +522,7 @@ export default {
         },
         "cp-energy_imported_grid": {
           label: "Ladepunkt (Netzanteil)",
+          category: "chargepoint",
           unit: "kWh",
           type: "bar",
           jsonKey: null,
@@ -447,6 +545,7 @@ export default {
         },
         "cp-energy_imported_pv": {
           label: "Ladepunkt (PV-Anteil)",
+          category: "chargepoint",
           unit: "kWh",
           type: "bar",
           jsonKey: null,
@@ -469,6 +568,7 @@ export default {
         },
         "cp-energy_imported_bat": {
           label: "Ladepunkt (PV-Anteil)",
+          category: "chargepoint",
           unit: "kWh",
           type: "bar",
           jsonKey: null,
@@ -491,6 +591,7 @@ export default {
         },
         "ev-soc": {
           label: "Fahrzeug SoC",
+          category: "vehicle",
           unit: "%",
           jsonKey: null,
           borderColor: "rgba(0, 0, 255, 0.7)",
@@ -512,6 +613,7 @@ export default {
         },
         "sh-power_average": {
           label: "SmartHome",
+          category: "component",
           unit: "kW",
           jsonKey: null,
           borderColor: "rgba(232, 62, 140, 0.7)",
@@ -532,6 +634,7 @@ export default {
         },
         "sh-energy_imported": {
           label: "SmartHome",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(232, 62, 140, 0.7)",
@@ -552,6 +655,7 @@ export default {
         },
         "sh-energy_exported": {
           label: "SmartHome",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(232, 62, 140, 0.7)",
@@ -572,6 +676,7 @@ export default {
         },
         "hc-power_imported": {
           label: "Hausverbrauch",
+          category: "component",
           unit: "kW",
           jsonKey: null,
           borderColor: "rgba(120, 122, 124, 0.7)",
@@ -592,6 +697,7 @@ export default {
         },
         "hc-energy_imported": {
           label: "Hausverbrauch",
+          category: "component",
           unit: "kWh",
           jsonKey: null,
           borderColor: "rgba(120, 122, 124, 0.7)",
@@ -612,6 +718,7 @@ export default {
         },
         "hc-energy_imported_grid": {
           label: "Hausverbrauch (Netzanteil)",
+          category: "component",
           unit: "kWh",
           type: "bar",
           jsonKey: null,
@@ -634,6 +741,7 @@ export default {
         },
         "hc-energy_imported_pv": {
           label: "Hausverbrauch (PV-Anteil)",
+          category: "component",
           unit: "kWh",
           type: "bar",
           jsonKey: null,
@@ -656,6 +764,7 @@ export default {
         },
         "hc-energy_imported_bat": {
           label: "Hausverbrauch (PV-Anteil)",
+          category: "component",
           unit: "kWh",
           type: "bar",
           jsonKey: null,
@@ -689,7 +798,7 @@ export default {
             },
           },
           legend: {
-            display: true,
+            display: false,
           },
           zoom: {
             // Container for pan options
@@ -921,19 +1030,16 @@ export default {
     commandData() {
       var dataObject = {
         date: this.chartRequestDate.year + this.chartRequestDate.month + this.chartRequestDate.day,
-        day: this.chartRequestDate.year + this.chartRequestDate.month + this.chartRequestDate.day,
       };
       switch (this.chartRange) {
         case "month":
           dataObject = {
             date: this.chartRequestDate.year + this.chartRequestDate.month,
-            month: this.chartRequestDate.year + this.chartRequestDate.month,
           };
           break;
         case "year":
           dataObject = {
             date: this.chartRequestDate.year,
-            year: this.chartRequestDate.year,
           };
           break;
       }
@@ -1004,11 +1110,12 @@ export default {
         if (Object.prototype.hasOwnProperty.call(chartEntries, "entries")) {
           chartEntries = chartEntries.entries;
         }
-        var myData = JSON.parse(JSON.stringify(chartEntries)).map((row) => {
+        let myData = {};
+        JSON.parse(JSON.stringify(chartEntries)).forEach((row) => {
           row.timestamp = row.timestamp * 1000;
-          return row;
+          myData[row.timestamp] = row;
         });
-        return myData;
+        return Object.values(myData);
       }
       return undefined;
     },
@@ -1049,11 +1156,37 @@ export default {
     chartRange() {
       this.init();
     },
+    chartDataRead: {
+      handler(newValue) {
+        if (newValue) {
+          this.chartIsLoading = false;
+        }
+      },
+      immediate: true,
+    },
+  },
+  updated() {
+    this.$nextTick(() => {
+      if (this.$refs.myChart?.chart) {
+        this.chartInstance = this.$refs.myChart.chart;
+      }
+    });
   },
   mounted() {
     this.init();
+    nextTick(() => {
+      this.chartInstance = this.$refs.myChart?.chart;
+    });
   },
   methods: {
+    getChartInstance() {
+      return this.$refs.myChart ? this.$refs.myChart.chart : null;
+    },
+    refreshLegend() {
+      this.$nextTick(() => {
+        this.chartInstance = this.$refs.myChart?.chart;
+      });
+    },
     handleChartClick(event) {
       if (this.chartRange == "day") {
         // no click actions for daily charts
@@ -1226,6 +1359,14 @@ export default {
               case "exported":
               case "energy_exported":
                 return "Einspeisung/Erzeugung";
+              case "energy_imported_grid":
+                return "Verbrauch (Netz-Anteil)";
+              case "energy_imported_pv":
+                return "Verbrauch (PV-Anteil)";
+              case "energy_imported_bat":
+                return "Verbrauch (Speicher-Anteil)";
+              case "energy_imported_cp":
+                return "Verbrauch (Ladepunkt-Anteil)";
               default:
                 console.warn("unknown measurement key:", groupKey, measurementKey);
             }
@@ -1358,6 +1499,18 @@ export default {
             case "energy_exported":
               details.push("Einspeisung/Erzeugung");
               break;
+            case "energy_imported_grid":
+              details.push("Netz-Anteil");
+              break;
+            case "energy_imported_pv":
+              details.push("PV-Anteil");
+              break;
+            case "energy_imported_bat":
+              details.push("Speicher-Anteil");
+              break;
+            case "energy_imported_cp":
+              details.push("Ladepunkt-Anteil");
+              break;
           }
           break;
         case "sh":
@@ -1405,6 +1558,32 @@ export default {
       return;
     },
     /**
+     * Updates the stack of a dataset based on the provided stack, object key and element key.
+     *
+     * @param {string} stack - The current stack of the dataset.
+     * @param {string} objectKey - The key of the object to update the stack for.
+     * @param {string} elementKey - The key of the element to update the stack for.
+     * @returns {string} - The updated stack string.
+     */
+    updateDatasetStack(stack, objectKey, elementKey) {
+      // if stack is not defined, return undefined
+      if (!stack) {
+        return undefined;
+      }
+      // do not stack totals
+      if (objectKey == "all" && !["grid", "pv", "bat", "cp"].includes(elementKey.split("_").slice(-1)[0])) {
+        console.debug("not stacking totals for:", stack, objectKey, elementKey);
+        return undefined;
+      }
+      // if stack is a template, replace # with objectKey
+      if (stack.includes("#")) {
+        console.debug("updating stack template:", stack, objectKey, elementKey);
+        return stack.replace("#", objectKey);
+      }
+      // otherwise return the stack as is
+      return stack;
+    },
+    /**
      * Adds a dataset to the chart.
      *
      * @param {string} baseObject - The base object for the dataset.
@@ -1414,6 +1593,7 @@ export default {
      * @returns {number|undefined} - The index of the added dataset or undefined if no dataset was added.
      */
     addDataset(baseObject, objectKey, elementKey, datasetKey) {
+      console.debug("adding dataset:", baseObject, objectKey, elementKey, datasetKey);
       // do not add dataset if objectKey is not present in totals[baseObject]
       if (
         Object.prototype.hasOwnProperty.call(this.chartTotals, baseObject) &&
@@ -1427,18 +1607,14 @@ export default {
         newDataset.parsing.yAxisKey = datasetKey;
         newDataset.jsonKey = datasetKey;
         newDataset.data = this.chartDataObject;
+        newDataset.category = this.datasetTemplates[datasetTemplate].category;
         // build dataset label
         newDataset.label = this.getDatasetLabel(baseObject, objectKey, elementKey, datasetKey);
         if (newDataset.labelSuffix != undefined) {
           newDataset.label = newDataset.label + newDataset.labelSuffix;
         }
         newDataset.hidden = this.hideDataset(baseObject, objectKey, elementKey);
-        if (objectKey == "all") {
-          if (!["grid", "pv", "bat", "cp"].includes(elementKey.split("_").slice(-1)[0])) {
-            // do not stack totals
-            delete newDataset.stack;
-          }
-        }
+        newDataset.stack = this.updateDatasetStack(newDataset.stack, objectKey, elementKey);
         return this.chartDatasets.datasets.push(newDataset) - 1;
       } else {
         console.warn("no matching template found for: " + datasetKey + " with template: " + datasetTemplate);
@@ -1466,7 +1642,13 @@ export default {
         };
       } else {
         elementKeysToAdd = {
-          counter: ["energy_imported", "energy_exported"],
+          counter: [
+            "energy_imported",
+            "energy_exported",
+            "energy_imported_grid",
+            "energy_imported_pv",
+            "energy_imported_bat",
+          ],
           pv: ["energy_exported"],
           bat: ["energy_imported", "energy_exported"],
           cp: ["energy_imported", "energy_imported_grid", "energy_imported_pv", "energy_imported_bat"],
@@ -1500,11 +1682,12 @@ export default {
      * If the chart form is invalid, a warning is logged and the function returns.
      */
     requestChart() {
-      let myForm = document.forms["chartForm"];
+      let myForm = document.forms["chartFilterForm"];
       if (!myForm.reportValidity()) {
         console.warn("form invalid");
         return;
       } else {
+        this.chartIsLoading = true;
         this.setupScaleX();
         this.chartDatasets.datasets = [];
         var command = "";
